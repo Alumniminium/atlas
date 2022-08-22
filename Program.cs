@@ -145,7 +145,7 @@ namespace atlas
         private static X509Certificate SelectCertificate(object sender, string hostName)
         {
             if (Config.Capsules.TryGetValue(hostName, out var capsule))
-                return X509Cemy gemini server now supports vhostsrtificate.CreateFromCertFile(Path.Combine(capsule.Root, capsule.TlsCertPath));
+                return X509Certificate.CreateFromCertFile(Path.Combine(capsule.Root, capsule.TlsCertPath));
             return null;
         }
         private static async ValueTask<bool> ReceiveData(GeminiCtx context)
