@@ -1,7 +1,4 @@
-﻿using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace atlas
 {
@@ -40,19 +37,40 @@ namespace atlas
                         [Environment.MachineName] = new Capsule()
                         {
                             FQDN = Environment.MachineName,
-                            AbsoluteTlsCertPath = $"{Environment.MachineName}.pfx",
+                            AbsoluteTlsCertPath = $"/srv/gemini/{Environment.MachineName}/{Environment.MachineName}.pfx",
                             AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/",
+                            MaxUploadSize = 1024*1024*4,
+                            Index = "index.gmi",
                             Locations = new()
                             {
                                 new Location()
                                 {
+                                    Index = "index.gmi",
                                     AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/",
-                                    DirectoryListing = false
+                                },
+                                new Location()
+                                {
+                                    Index = "script.sh",
+                                    AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/cgi/",
+                                    RequireClientCert = true
                                 },
                                 new Location()
                                 {
                                     AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/files/",
-                                    DirectoryListing = true
+                                    DirectoryListing = true,
+                                    AllowFileUploads = true,
+
+                                    AllowedMimeTypes = new()
+                                    {
+                                        new MimeConfig()
+                                        {
+                                            MimeType = "text/*",
+                                            MaxSizeBytes = 1024 * 1024 * 1, 
+                                        },
+                                        new MimeConfig() { MimeType = "image/*" },
+                                        new MimeConfig() { MimeType = "audio/mpeg" },
+                                        new MimeConfig() { MimeType = "audio/ogg" },
+                                    }
                                 },
                             }
                         }
