@@ -12,14 +12,23 @@ namespace atlas
         public string FQDN { get; set; }
         public List<Location> Locations { get; set; }
         public int MaxUploadSize { get; set; }
-        public string Index {get;set;} = "index.gmi";
+        public string Index { get; set; } = "index.gmi";
 
-        public Location GetLocation(Uri uri) => Locations.Where(x=>x.AbsoluteRootPath.EndsWith(uri.AbsolutePath) || x.AbsoluteRootPath.EndsWith(Path.GetDirectoryName(uri.AbsolutePath))).FirstOrDefault();
+        public Location GetLocation(Uri uri)
+        {
+            foreach (var loc in Locations)
+            {
+                var absolutePath = Path.GetDirectoryName(Path.Combine(AbsoluteRootPath, uri.AbsolutePath[1..]))+"/";
+                if (loc.AbsoluteRootPath == absolutePath)
+                    return loc;
+            }
+            return null;
+        }
     }
 
     public class Location
     {
-        public string Index {get;set;} = "index.gmi";
+        public string Index { get; set; } = "index.gmi";
         public bool DirectoryListing { get; set; }
         public string AbsoluteRootPath { get; set; }
         public bool AllowFileUploads { get; set; }

@@ -12,7 +12,10 @@ namespace atlas
             LoadMimeMap();
             LoadConfig();
             Console.WriteLine("Atlas ready!");
-            await Server.Start();
+            Server.Start();
+
+            while(true)
+                Thread.Sleep(int.MaxValue);
         }
 
         private static void LoadConfig()
