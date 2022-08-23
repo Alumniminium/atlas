@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}/bin/Debug/net7.0/atlas.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "externalTerminal",
+            // "console": "externalTerminal",
             "env": {
             },
         }

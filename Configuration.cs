@@ -14,7 +14,7 @@ namespace atlas
         public int MaxUploadSize { get; set; }
         public string Index {get;set;} = "index.gmi";
 
-        public Location GetLocation(Uri uri) => Locations.Where(x=>x.AbsoluteRootPath.EndsWith(uri.AbsolutePath)).FirstOrDefault();
+        public Location GetLocation(Uri uri) => Locations.Where(x=>x.AbsoluteRootPath.EndsWith(uri.AbsolutePath) || x.AbsoluteRootPath.EndsWith(Path.GetDirectoryName(uri.AbsolutePath))).FirstOrDefault();
     }
 
     public class Location

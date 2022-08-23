@@ -108,7 +108,7 @@ namespace atlas
                 case "gemini":
                     {
                         var filePath = Path.Combine(ctx.Capsule.AbsoluteRootPath, ctx.Uri.AbsolutePath[1..]); // remove leading slash
-                        
+
                         if (ctx.Uri.AbsolutePath.EndsWith('/'))
                         {
                             var location = ctx.Capsule.GetLocation(ctx.Uri);
@@ -135,11 +135,34 @@ namespace atlas
                     }
                 case "titan":
                     {
-                        var parts = request.Split(';');
-                        var pathUri = new Uri(parts[0]);
-                        var path = Path.Combine(ctx.Capsule.AbsoluteRootPath, pathUri.AbsolutePath[1..]);
-                        var strSize = parts[2].Split('=')[1].Replace("\r\n", "");
-                        var size = int.Parse(strSize);
+                        var (pathUri, path, mimeType, size) = ParseTitanRequest(ctx, request);
+
+                        var location = ctx.Capsule.GetLocation(pathUri);
+                        var allowedMimeType = false;
+
+                        if (location != null)
+                            allowedMimeType = location.AllowedMimeTypes.Any(x => x.MimeType.ToLowerInvariant() == mimeType.ToLowerInvariant());
+                        else
+                        {
+                            await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes($"{(int)StatusCode.FailurePerm} {pathUri.AbsolutePath} not allowed.\r\n"));
+                            await ctx.SslStream.FlushAsync();
+                            return true;
+                        }
+
+                        if (!allowedMimeType)
+                        {
+                            await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes($"{(int)StatusCode.FailurePerm} {mimeType} not allowed.\r\n"));
+                            await ctx.SslStream.FlushAsync();
+
+                            return true;
+                        }
+
+                        if (ctx.Capsule.MaxUploadSize <= size)
+                        {
+                            await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes($"{(int)StatusCode.FailurePerm} Max Upload Size: {ctx.Capsule.MaxUploadSize}! Your File: {size}.\r\n"));
+                            await ctx.SslStream.FlushAsync();
+                            return true;
+                        }
 
                         var data = new byte[size];
                         var fileLen = 0;
@@ -147,19 +170,73 @@ namespace atlas
                             fileLen += await ctx.SslStream.ReadAsync(data.AsMemory(fileLen, size - fileLen));
 
                         Console.WriteLine("Finished");
-
                         File.WriteAllBytes(path, data);
-
                         await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes($"{(int)StatusCode.RedirectTemp} gemini://{Path.GetDirectoryName(pathUri.AbsolutePath)}/\r\n"));
                         return true;
                     }
                 case "spartan":
                     {
-                        throw new NotImplementedException("Spartan Protocol");
+                        var parts = request.Split(' ');
+                        var host = parts[0];
+                        var pathUri = new Uri(parts[1]);
+                        var size = int.Parse(parts[2]);
+                        var absoluteDestinationPath = Path.Combine(ctx.Capsule.AbsoluteRootPath, pathUri.AbsolutePath[1..]);
+
+                        var location = ctx.Capsule.GetLocation(pathUri);
+                        var allowedMimeType = false;
+                        var mimeType = GetMimeType(Path.GetExtension(pathUri.AbsolutePath));
+
+                        if (location != null)
+                            allowedMimeType = location.AllowedMimeTypes.Any(x => x.MimeType.ToLowerInvariant() == mimeType);
+                        else
+                        {
+                            await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes($"5 {pathUri.AbsolutePath} not allowed.\r\n"));
+                            await ctx.SslStream.FlushAsync();
+                            return true;
+                        }
+
+                        if (!allowedMimeType)
+                        {
+                            await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes($"5 {mimeType} not allowed.\r\n"));
+                            await ctx.SslStream.FlushAsync();
+
+                            return true;
+                        }
+
+                        if (ctx.Capsule.MaxUploadSize <= size)
+                        {
+                            await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes($"5 Max Upload Size: {ctx.Capsule.MaxUploadSize}! Your File: {size}.\r\n"));
+                            await ctx.SslStream.FlushAsync();
+                            return true;
+                        }
+
+                        var data = new byte[size];
+                        var fileLen = 0;
+                        while (fileLen != size)
+                            fileLen += await ctx.SslStream.ReadAsync(data.AsMemory(fileLen, size - fileLen));
+
+                        Console.WriteLine("Finished");
+                        File.WriteAllBytes(absoluteDestinationPath, data);
+                        await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes($"3 gemini://{Path.GetDirectoryName(pathUri.AbsolutePath)}/\r\n"));
+
+                        break;
                     }
             }
             return false;
         }
+
+        private static (Uri, string, string, int) ParseTitanRequest(GeminiCtx ctx, string request)
+        {
+            var titanArgs = request.Split(';');
+            var pathUri = new Uri(titanArgs[0]);
+            var absoluteDestinationPath = Path.Combine(ctx.Capsule.AbsoluteRootPath, pathUri.AbsolutePath[1..]);
+            var mimeType = titanArgs[1].Split('=')[1];
+            var strSizeBytes = titanArgs[2].Split('=')[1].Replace("\r\n", "");
+            var sizeBytes = int.Parse(strSizeBytes);
+
+            return (pathUri, absoluteDestinationPath, mimeType, sizeBytes);
+        }
+
         public static async ValueTask Respond(GeminiCtx context)
         {
             if (context.DirectoryListing)
@@ -192,10 +269,11 @@ namespace atlas
         private static string CreateDirectoryListing(GeminiCtx context)
         {
             var sb = new StringBuilder();
+            sb.AppendLine("### LAST  MODIFIED | SIZE | NAME");
             foreach (var file in Directory.GetFiles(context.RequestPath))
             {
                 var fi = new FileInfo(file);
-                sb.AppendLine($"=> gemini://{context.Capsule.FQDN}/{context.RequestPath.Replace(context.Capsule.AbsoluteRootPath, "")}/{Path.GetFileName(file)} {fi.CreationTimeUtc} | {fi.Length / 1024}kb | {Path.GetFileName(file)}");
+                sb.AppendLine($"=> gemini://{context.Capsule.FQDN}/{context.RequestPath.Replace(context.Capsule.AbsoluteRootPath, "")}/{Path.GetFileName(file)} {fi.CreationTimeUtc} | {(fi.Length / 1024 / 1024f).ToString("0.00")}mb | {Path.GetFileName(file)}");
             }
 
             return sb.ToString();
@@ -206,6 +284,7 @@ namespace atlas
             context.SslStream.Flush();
             context.SslStream.Close();
             context.Socket.Close();
+            Console.WriteLine("Closed Connection");
         }
 
         public static string GetMimeType(string ext)
