@@ -48,7 +48,7 @@ namespace atlas
                 while (true)
                 {
                     Console.WriteLine("[GEMINI] Waiting for connection...");
-                    var clientSocket = await GeminiSocket.AcceptAsync();
+                    var clientSocket = await GeminiSocket.AcceptAsync().ConfigureAwait(false);;
 
                     var ctx = new GeminiCtx()
                     {
@@ -56,19 +56,19 @@ namespace atlas
                         Stream = new SslStream(new NetworkStream(clientSocket), false)
                     };
 
-                    var success = await HandShake(ctx);
+                    var success = await HandShake(ctx).ConfigureAwait(false);
                     try
                     {
                         if (!success)
                             continue;
 
-                        await ReceiveHeader(ctx);
+                        await ReceiveHeader(ctx).ConfigureAwait(false);
 
 
                         if (ctx.Uri.Scheme == "titan")
-                            await HandleUpload(ctx);
+                            await HandleUpload(ctx).ConfigureAwait(false);
                         else
-                            await HandleRequest(ctx);
+                            await HandleRequest(ctx).ConfigureAwait(false);
                     }
                     catch (Exception e)
                     {
@@ -85,7 +85,7 @@ namespace atlas
                 while (true)
                 {
                     Console.WriteLine("[SPARTAN] Waiting for connection...");
-                    var clientSocket = await SpartanSocket.AcceptAsync();
+                    var clientSocket = await SpartanSocket.AcceptAsync().ConfigureAwait(false);
 
                     var ctx = new SpartanCtx()
                     {
@@ -95,7 +95,7 @@ namespace atlas
 
                     try
                     {
-                        await ReceiveHeader(ctx);
+                        await ReceiveHeader(ctx).ConfigureAwait(false);
                         var parts = ctx.Request.Split(' ');
                         var host = parts[0];
                         var path = parts[1];
@@ -106,9 +106,9 @@ namespace atlas
                         ctx.RequestPath = path;
 
                         if (size > 0)
-                            await HandleUpload(ctx);
+                            await HandleUpload(ctx).ConfigureAwait(false);
                         else
-                            await HandleRequest(ctx);
+                            await HandleRequest(ctx).ConfigureAwait(false);
                     }
                     catch (Exception e)
                     {
@@ -126,7 +126,7 @@ namespace atlas
             try
             {
                 var tlsStream = (SslStream)ctx.Stream;
-                await tlsStream.AuthenticateAsServerAsync(TlsOptions);
+                await tlsStream.AuthenticateAsServerAsync(TlsOptions).ConfigureAwait(false);
                 Config.Capsules.TryGetValue(tlsStream.TargetHostName, out ctx.Capsule);
 
                 ctx.CertAlgo = tlsStream.CipherAlgorithm;
@@ -147,7 +147,7 @@ namespace atlas
         {
             var reqBuffer = new byte[ctx.MaxHeaderSize + 2]; // +2 for \r\n
             var length = 0;
-            while (await ctx.Stream.ReadAsync(reqBuffer.AsMemory(length, 1)) == 1)
+            while (await ctx.Stream.ReadAsync(reqBuffer.AsMemory(length, 1)).ConfigureAwait(false) == 1)
             {
                 ctx.Request += Encoding.UTF8.GetString(reqBuffer, length, 1);
                 if (!ctx.Request.EndsWith("\r\n"))
@@ -167,14 +167,14 @@ namespace atlas
             {
                 if (ctx is SpartanCtx)
                 {
-                    await ctx.BadRequest("Client Certificate required - Connect using Gemini");
+                    await ctx.BadRequest("Client Certificate required - Connect using Gemini").ConfigureAwait(false);
                     return;
                 }
                 if (ctx is GeminiCtx gctx)
                 {
                     if (gctx.ClientCert == null)
                     {
-                        await gctx.CertRequired();
+                        await gctx.CertRequired().ConfigureAwait(false);
                         return;
                     }
                 }
@@ -186,7 +186,7 @@ namespace atlas
                 if (ctx.DirectoryListing)
                 {
                     var gmi = Util.CreateDirectoryListing(ctx, location);
-                    await ctx.Success(Encoding.UTF8.GetBytes(gmi));
+                    await ctx.Success(Encoding.UTF8.GetBytes(gmi)).ConfigureAwait(false);
                     return;
                 }
                 else
@@ -214,14 +214,14 @@ namespace atlas
             ctx.RequestPath = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
             if (!File.Exists(ctx.RequestPath))
             {
-                await ctx.NotFound();
+                await ctx.NotFound().ConfigureAwait(false);
                 return;
             }
 
             var ext = Path.GetExtension(ctx.RequestPath);
             var mimeType = Util.GetMimeType(ext);
-            var data = await File.ReadAllBytesAsync(ctx.RequestPath);
-            await ctx.Success(data, mimeType);
+            var data = await File.ReadAllBytesAsync(ctx.RequestPath).ConfigureAwait(false);
+            await ctx.Success(data, mimeType).ConfigureAwait(false);
         }
         public static async ValueTask HandleUpload(SpartanCtx ctx)
         {
@@ -231,7 +231,7 @@ namespace atlas
             var absoluteDestinationPath = Path.Combine(ctx.Capsule.AbsoluteRootPath, pathUri.AbsolutePath[1..]);
             var mimeType = Util.GetMimeType(Path.GetExtension(pathUri.AbsolutePath));
 
-            await UploadFile(ctx, absoluteDestinationPath, pathUri, mimeType, size);
+            await UploadFile(ctx, absoluteDestinationPath, pathUri, mimeType, size).ConfigureAwait(false);
         }
         public static async ValueTask HandleUpload(GeminiCtx ctx)
         {
@@ -255,7 +255,7 @@ namespace atlas
             }
             var size = int.Parse(strSizeBytes);
 
-            await UploadFile(ctx, path, pathUri, mimeType, size);
+            await UploadFile(ctx, path, pathUri, mimeType, size).ConfigureAwait(false);
         }
 
         public static async ValueTask UploadFile(AtlasCtx ctx, string path, Uri pathUri, string mimeType, int size)
@@ -264,13 +264,13 @@ namespace atlas
 
             if (string.IsNullOrEmpty(path) || location == null)
             {
-                await ctx.BadRequest("missing filaneme or forbidden path");
+                await ctx.BadRequest("missing filaneme or forbidden path").ConfigureAwait(false);
                 return;
             }
 
             if (ctx.Capsule.MaxUploadSize <= size)
             {
-                await ctx.BadRequest($"{size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}");
+                await ctx.BadRequest($"{size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}").ConfigureAwait(false);
                 return;
             }
 
@@ -278,24 +278,24 @@ namespace atlas
 
             if (!isAllowedType)
             {
-                await ctx.BadRequest("mimetype not allowed here");
+                await ctx.BadRequest("mimetype not allowed here").ConfigureAwait(false);
                 return;
             }
 
             var data = new byte[size];
             var fileLen = 0;
             while (fileLen != size)
-                fileLen += await ctx.Stream.ReadAsync(data.AsMemory(fileLen, size - fileLen));          
+                fileLen += await ctx.Stream.ReadAsync(data.AsMemory(fileLen, size - fileLen)).ConfigureAwait(false);         
 
             Console.WriteLine("Finished");
             File.WriteAllBytes(path, data);
-            await ctx.Redirect($"{Path.GetDirectoryName(pathUri.AbsolutePath)}/");
+            await ctx.Redirect($"{Path.GetDirectoryName(pathUri.AbsolutePath)}/").ConfigureAwait(false);
         }
         public static void CloseConnection(AtlasCtx ctx)
         {
             ctx.Stream.Flush();
-            ctx.Stream.Close();
-            ctx.Socket.Close();
+            ctx.Stream.Dispose();
+            ctx.Socket.Dispose();
             Console.WriteLine("Closed Connection");
         }
     }

@@ -1,0 +1,20 @@
+# Evil Corp
+Welcome to E Corp.
+Have a look around, we're hosting interesting files for the few intelligent enough to utilize them.
+
+=> /info.gmi Further Information
+=> /files/ File Listing
+=> /cgi/ Upload Files
+
+* Their promises deceived us
+* Their deception  made us afraid
+* The fear made us consent
+* The consent let it happen
+* We have become too weak
+* Weakness made us cowards
+* Cowards sacrifice their brothers
+
+### Server Information
+
+This Capsule is powered by Atlas and hosted in a non-disclosed datacenter somewhere, mirrored everywhere.
+

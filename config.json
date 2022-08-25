@@ -1,0 +1,48 @@
+{
+    "Port": 1965,
+    "Capsules": {
+      "ec.her.st": {
+        "AbsoluteTlsCertPath": "/srv/gemini/ec.her.st/ec.her.st.pfx",
+        "AbsoluteRootPath": "/srv/gemini/ec.her.st/",
+        "FQDN": "ec.her.st",
+        "MaxUploadSize": 4194304,
+        "Index": "index.gmi",
+        "Locations": [
+          {
+            "Index": "index.gmi",
+            "DirectoryListing": false,
+            "AbsoluteRootPath": "/srv/gemini/ec.her.st/",
+            "AllowFileUploads": false,
+            "RequireClientCert": false,
+            "AllowedMimeTypes": null
+          },
+          {
+            "CGI": true,
+            "Index": "script.csx",
+            "DirectoryListing": false,
+            "AbsoluteRootPath": "/srv/gemini/ec.her.st/cgi/",
+            "AllowFileUploads": false,
+            "RequireClientCert": true,
+            "AllowedMimeTypes": null
+          },
+          {
+            "Index": "index.gmi",
+            "DirectoryListing": true,
+            "AbsoluteRootPath": "/srv/gemini/ec.her.st/files/",
+            "AllowFileUploads": true,
+            "RequireClientCert": false,
+            "AllowedMimeTypes": {
+              "text/*": {
+                "MaxSizeBytes": 1048576
+              },
+              "image/*": {},
+              "audio/mpeg": {},
+              "audio/ogg": {},
+              "audio/wave": {}
+            }
+          }
+        ]
+      }
+    }
+  }
+  

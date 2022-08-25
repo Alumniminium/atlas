@@ -42,7 +42,7 @@ namespace atlas
 
             info.WorkingDirectory = path;
             info.UseShellExecute = false;
-            info.FileName = $"bash";
+            info.FileName = $"sh";
             info.Arguments = $"-c {path}{scriptName}";
             info.RedirectStandardOutput = true;
             info.RedirectStandardError = true;
