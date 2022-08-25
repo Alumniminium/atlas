@@ -6,7 +6,6 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using atlas.Contexts;
-using atlas.Protocols;
 
 namespace atlas
 {
@@ -58,7 +57,7 @@ namespace atlas
                         Stream = new SslStream(new NetworkStream(clientSocket), false)
                     };
 
-                    var success = await Gemini.HandShake(ctx);
+                    var success = await HandShake(ctx);
                     try
                     {
                         if (!success)
@@ -68,7 +67,7 @@ namespace atlas
 
 
                         if (ctx.Uri.Scheme == "titan")
-                            await Titan.HandleUpload(ctx);
+                            await HandleUpload(ctx);
                         else
                             await HandleRequest(ctx);
                     }
@@ -102,13 +101,13 @@ namespace atlas
                         var host = parts[0];
                         var path = parts[1];
                         var size = int.Parse(parts[2]);
-                        
+
                         if (Config.Capsules.TryGetValue(host, out var capsule))
                             ctx.Capsule = capsule;
                         ctx.RequestPath = path;
 
                         if (size > 0)
-                            await Spartan.HandleUpload(ctx);
+                            await HandleUpload(ctx);
                         else
                             await HandleRequest(ctx);
                     }
@@ -123,6 +122,25 @@ namespace atlas
                 }
             });
         }
+        public static async ValueTask<bool> HandShake(GeminiCtx ctx)
+        {
+            try
+            {
+                var tlsStream = (SslStream)ctx.Stream;
+                await tlsStream.AuthenticateAsServerAsync(TlsOptions);
+                Config.Capsules.TryGetValue(tlsStream.TargetHostName, out ctx.Capsule);
+
+                if (ctx.ClientCert != null)
+                    Console.WriteLine($"Client Cert: {ctx.ClientIdentity}, Hash: {ctx.ClientIdentityHash} ");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{ctx.Socket.RemoteEndPoint} -> TLS HandShake aborted.");
+                Console.WriteLine(e);
+            }
+            return ctx.Capsule != null;
+        }
+
         public static async ValueTask ReceiveHeader(AtlasCtx ctx)
         {
             var reqBuffer = new byte[ctx.MaxHeaderSize + 2]; // +2 for \r\n
@@ -168,6 +186,75 @@ namespace atlas
             var mimeType = Util.GetMimeType(ext);
             var data = await File.ReadAllBytesAsync(ctx.RequestPath);
             await ctx.Success(data, mimeType);
+        }
+        public static async ValueTask HandleUpload(SpartanCtx ctx)
+        {
+            var parts = ctx.Request.Split(' ');
+            var pathUri = new Uri(parts[1]);
+            var size = int.Parse(parts[2]);
+            var absoluteDestinationPath = Path.Combine(ctx.Capsule.AbsoluteRootPath, pathUri.AbsolutePath[1..]);
+            var mimeType = Util.GetMimeType(Path.GetExtension(pathUri.AbsolutePath));
+
+            await UploadFile(ctx,absoluteDestinationPath,pathUri,mimeType,size);   
+        }
+        public static async ValueTask HandleUpload(GeminiCtx ctx)
+        {
+            var titanArgs = ctx.Request.Split(';');
+            var pathUri = new Uri(titanArgs[0]);
+            var path = Path.Combine(ctx.Capsule.AbsoluteRootPath, pathUri.AbsolutePath[1..]);
+            var mimeType = "text/gemini";
+            var strSizeBytes = "0";
+
+            for(int i = 0; i<titanArgs.Length;i++)
+            {
+                var arg = titanArgs[i];
+                var kvp = arg.Split('=');
+
+                if(kvp[0] == "mime")
+                    mimeType = kvp[1];
+                if(kvp[0] == "size")
+                    strSizeBytes = kvp[1];
+                if(kvp[0] == "charset")
+                    continue;
+            }
+            var size = int.Parse(strSizeBytes);
+            
+            await UploadFile(ctx,path,pathUri,mimeType,size);     
+        }
+
+        public static async ValueTask UploadFile(AtlasCtx ctx, string path, Uri pathUri, string mimeType, int size)
+        {
+            var location = ctx.Capsule.GetLocation(pathUri);
+            var isAllowedType = false;
+
+            if (string.IsNullOrEmpty(path) || location == null)
+            {
+                await ctx.BadRequest("missing filaneme or forbidden path");
+                return;
+            }
+
+            isAllowedType = location.AllowedMimeTypes.Any(x => x.MimeType.ToLowerInvariant() == mimeType.ToLowerInvariant() || (x.MimeType.Split('/')[1] == "*" && mimeType.Split('/')[0] == x.MimeType.Split('/')[0]));
+
+            if (!isAllowedType)
+            {
+                await ctx.BadRequest("mimetype not allowed here");
+                return;
+            }
+
+            if (ctx.Capsule.MaxUploadSize <= size)
+            {
+                await ctx.BadRequest($"{size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}");
+                return;
+            }
+
+            var data = new byte[size];
+            var fileLen = 0;
+            while (fileLen != size)
+                fileLen += await ctx.Stream.ReadAsync(data.AsMemory(fileLen, size - fileLen));
+
+            Console.WriteLine("Finished");
+            File.WriteAllBytes(path, data);
+            await ctx.Redirect($"{Path.GetDirectoryName(pathUri.AbsolutePath)}/");  
         }
         public static void CloseConnection(AtlasCtx ctx)
         {
