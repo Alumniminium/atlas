@@ -7,7 +7,7 @@ namespace atlas
         public static Dictionary<string, string> ExtensionToMimeType = new();
         public static Dictionary<string, string> MimeTypeToExtension = new();
 
-        static async Task Main(string[] args)
+        static void Main()
         {
             LoadMimeMap();
             LoadConfig();

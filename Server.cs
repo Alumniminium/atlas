@@ -5,6 +5,8 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using atlas.Contexts;
+using atlas.Protocols;
 
 namespace atlas
 {
@@ -49,7 +51,14 @@ namespace atlas
                 {
                     Console.WriteLine("[GEMINI] Waiting for connection...");
                     var clientSocket = await GeminiSocket.AcceptAsync();
-                    var (success, ctx) = await Gemini.HandShake(clientSocket);
+
+            var ctx = new GeminiCtx()
+            {
+                Socket = clientSocket,
+                Stream = new SslStream(new NetworkStream(clientSocket), false)
+            };
+
+                    var success = await Gemini.HandShake(ctx);
                     try
                     {
                         if (!success)
@@ -58,9 +67,9 @@ namespace atlas
                         await Gemini.ReceiveHeader(ctx);
 
                         if (ctx.IsUpload)
-                            await Gemini.POST(ctx);
+                            await Titan.HandleRequest(ctx);
                         else
-                            await Gemini.GET(ctx);
+                            await Gemini.HandleRequest(ctx);
                     }
                     catch (Exception e)
                     {
@@ -68,7 +77,7 @@ namespace atlas
                     }
                     finally
                     {
-                        Gemini.CloseConnection(ctx);
+                        ctx.CloseConnection();
                     }
                 }
             });
@@ -82,7 +91,7 @@ namespace atlas
                     var ctx = new SpartanCtx()
                     {
                         Socket = clientSocket,
-                        SslStream = new NetworkStream(clientSocket)
+                        Stream = new NetworkStream(clientSocket)
                     };
 
                     try
@@ -100,7 +109,7 @@ namespace atlas
                     }
                     finally
                     {
-                        Spartan.CloseConnection(ctx);
+                        ctx.CloseConnection();
                     }
                 }
             });
