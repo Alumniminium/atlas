@@ -52,11 +52,11 @@ namespace atlas
                     Console.WriteLine("[GEMINI] Waiting for connection...");
                     var clientSocket = await GeminiSocket.AcceptAsync();
 
-            var ctx = new GeminiCtx()
-            {
-                Socket = clientSocket,
-                Stream = new SslStream(new NetworkStream(clientSocket), false)
-            };
+                    var ctx = new GeminiCtx()
+                    {
+                        Socket = clientSocket,
+                        Stream = new SslStream(new NetworkStream(clientSocket), false)
+                    };
 
                     var success = await Gemini.HandShake(ctx);
                     try
@@ -64,12 +64,13 @@ namespace atlas
                         if (!success)
                             continue;
 
-                        await Gemini.ReceiveHeader(ctx);
+                        await ReceiveHeader(ctx);
 
-                        if (ctx.IsUpload)
-                            await Titan.HandleRequest(ctx);
+
+                        if (ctx.Uri.Scheme == "titan")
+                            await Titan.HandleUpload(ctx);
                         else
-                            await Gemini.HandleRequest(ctx);
+                            await HandleRequest(ctx);
                     }
                     catch (Exception e)
                     {
@@ -77,7 +78,7 @@ namespace atlas
                     }
                     finally
                     {
-                        ctx.CloseConnection();
+                        CloseConnection(ctx);
                     }
                 }
             });
@@ -96,12 +97,20 @@ namespace atlas
 
                     try
                     {
-                        await Spartan.ReceiveHeader(ctx);
+                        await ReceiveHeader(ctx);
+                        var parts = ctx.Request.Split(' ');
+                        var host = parts[0];
+                        var path = parts[1];
+                        var size = int.Parse(parts[2]);
+                        
+                        if (Config.Capsules.TryGetValue(host, out var capsule))
+                            ctx.Capsule = capsule;
+                        ctx.RequestPath = path;
 
-                        if (ctx.IsUpload)
-                            await Spartan.POST(ctx);
+                        if (size > 0)
+                            await Spartan.HandleUpload(ctx);
                         else
-                            await Spartan.GET(ctx);
+                            await HandleRequest(ctx);
                     }
                     catch (Exception e)
                     {
@@ -109,10 +118,63 @@ namespace atlas
                     }
                     finally
                     {
-                        ctx.CloseConnection();
+                        CloseConnection(ctx);
                     }
                 }
             });
+        }
+        public static async ValueTask ReceiveHeader(AtlasCtx ctx)
+        {
+            var reqBuffer = new byte[ctx.MaxHeaderSize + 2]; // +2 for \r\n
+            var length = 0;
+            while (await ctx.Stream.ReadAsync(reqBuffer.AsMemory(length, 1)) == 1)
+            {
+                ctx.Request += Encoding.UTF8.GetString(reqBuffer, length, 1);
+                if (!ctx.Request.EndsWith("\r\n"))
+                    continue;
+
+                ctx.RequestPath = string.Join(' ', ctx.Request[..^2]);
+                break;
+            }
+        }
+        public static async ValueTask HandleRequest(AtlasCtx ctx)
+        {
+            var location = ctx.Capsule.GetLocation(ctx.Uri);
+            if (location == null)
+                return;
+
+            if (string.IsNullOrEmpty(Path.GetFileName(ctx.RequestPath)))
+            {
+                ctx.DirectoryListing = location.DirectoryListing;
+                if (ctx.DirectoryListing)
+                {
+                    var gmi = Util.CreateDirectoryListing(ctx, location);
+                    await ctx.Success(Encoding.UTF8.GetBytes(gmi));
+                    return;
+                }
+                else
+                    ctx.RequestPath += location.Index;
+            }
+
+            ctx.RequestPath = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
+
+            if (!File.Exists(ctx.RequestPath))
+            {
+                await ctx.NotFound();
+                return;
+            }
+
+            var ext = Path.GetExtension(ctx.RequestPath);
+            var mimeType = Util.GetMimeType(ext);
+            var data = await File.ReadAllBytesAsync(ctx.RequestPath);
+            await ctx.Success(data, mimeType);
+        }
+        public static void CloseConnection(AtlasCtx ctx)
+        {
+            ctx.Stream.Flush();
+            ctx.Stream.Close();
+            ctx.Socket.Close();
+            Console.WriteLine("Closed Connection");
         }
     }
 }

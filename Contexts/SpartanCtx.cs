@@ -4,6 +4,7 @@ namespace atlas.Contexts
 {
     public class SpartanCtx : AtlasCtx
     {
+        public override int MaxHeaderSize {get;set;}= 1024;
         public override Uri Uri => new($"spartan://{RequestPath}");
         public override async ValueTask NotFound() => await Stream.WriteAsync(Encoding.UTF8.GetBytes($"{(int)SpartanStatusCode.ClientError} {Uri.AbsolutePath} not found.\r\n"));
         public override async ValueTask BadRequest(string reason) => await Stream.WriteAsync(Encoding.UTF8.GetBytes($"{(int)SpartanStatusCode.ServerError} {Uri.AbsolutePath} {reason}\r\n"));

@@ -5,7 +5,7 @@ namespace atlas.Protocols
 {
     public static class Titan
     {
-        public static async ValueTask HandleRequest(GeminiCtx ctx)
+        public static async ValueTask HandleUpload(GeminiCtx ctx)
         {
             var titanArgs = ctx.Request.Split(';');
             var pathUri = new Uri(titanArgs[0]);

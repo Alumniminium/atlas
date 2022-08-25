@@ -6,6 +6,7 @@ namespace atlas.Contexts
 {
     public class GeminiCtx : AtlasCtx
     {
+        public override int MaxHeaderSize {get;set;}= 1024;
         public override Uri Uri => new(RequestPath);
         public X509Certificate ServerCert => (Stream as SslStream).LocalCertificate;
         public X509Certificate ClientCert => (Stream as SslStream).RemoteCertificate;
