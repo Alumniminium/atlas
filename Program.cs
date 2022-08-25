@@ -54,6 +54,7 @@ namespace atlas
                                 new Location()
                                 {
                                     Index = "script.sh",
+                                    CGI = true,
                                     AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/cgi/",
                                     RequireClientCert = true
                                 },
@@ -65,14 +66,13 @@ namespace atlas
 
                                     AllowedMimeTypes = new()
                                     {
-                                        new MimeConfig()
+                                        ["text/*"] = new MimeConfig
                                         {
-                                            MimeType = "text/*",
                                             MaxSizeBytes = 1024 * 1024 * 1, 
                                         },
-                                        new MimeConfig() { MimeType = "image/*" },
-                                        new MimeConfig() { MimeType = "audio/mpeg" },
-                                        new MimeConfig() { MimeType = "audio/ogg" },
+                                        ["image/*"] = new MimeConfig{},
+                                        ["audio/mpeg"] = new MimeConfig{},
+                                        ["audio/ogg"] = new MimeConfig{},
                                     }
                                 },
                             }
@@ -80,7 +80,14 @@ namespace atlas
                     }
 
                 };
-                var json = JsonSerializer.Serialize(Server.Config, new JsonSerializerOptions() { WriteIndented = true });
+                var json = JsonSerializer.Serialize(Server.Config, new JsonSerializerOptions() 
+                { 
+                    WriteIndented = true,
+                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Always,
+                    IncludeFields=true,
+                    DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
+                });
+
                 Console.WriteLine(json);
                 Environment.Exit(0);
             }

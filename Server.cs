@@ -1,4 +1,3 @@
-using System;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -130,6 +129,9 @@ namespace atlas
                 await tlsStream.AuthenticateAsServerAsync(TlsOptions);
                 Config.Capsules.TryGetValue(tlsStream.TargetHostName, out ctx.Capsule);
 
+                ctx.CertAlgo = tlsStream.CipherAlgorithm;
+                ctx.CertKx = tlsStream.KeyExchangeAlgorithm;
+
                 if (ctx.ClientCert != null)
                     Console.WriteLine($"Client Cert: {ctx.ClientIdentity}, Hash: {ctx.ClientIdentityHash} ");
             }
@@ -179,6 +181,13 @@ namespace atlas
             if (!File.Exists(ctx.RequestPath))
             {
                 await ctx.NotFound();
+                return;
+            }
+
+            if(location.CGI)
+            {
+                var content = await CGI.ExecuteScript(ctx as GeminiCtx, location.Index, location.AbsoluteRootPath);
+                await ctx.Success(Encoding.UTF8.GetBytes(content));
                 return;
             }
 
@@ -233,7 +242,7 @@ namespace atlas
                 return;
             }
 
-            isAllowedType = location.AllowedMimeTypes.Any(x => x.MimeType.ToLowerInvariant() == mimeType.ToLowerInvariant() || (x.MimeType.Split('/')[1] == "*" && mimeType.Split('/')[0] == x.MimeType.Split('/')[0]));
+            isAllowedType = location.AllowedMimeTypes.Any(x => x.Key.ToLowerInvariant() == mimeType.ToLowerInvariant() || (x.Key.ToLowerInvariant().Split('/')[1] == "*" && mimeType.Split('/')[0] == x.Key.ToLowerInvariant().Split('/')[0]));
 
             if (!isAllowedType)
             {
