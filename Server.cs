@@ -163,6 +163,23 @@ namespace atlas
             if (location == null)
                 return;
 
+            if (location.RequireClientCert)
+            {
+                if (ctx is SpartanCtx)
+                {
+                    await ctx.BadRequest("Client Certificate required - Connect using Gemini");
+                    return;
+                }
+                if (ctx is GeminiCtx gctx)
+                {
+                    if (gctx.ClientCert == null)
+                    {
+                        await gctx.CertRequired();
+                        return;
+                    }
+                }
+            }
+
             if (string.IsNullOrEmpty(Path.GetFileName(ctx.RequestPath)))
             {
                 ctx.DirectoryListing = location.DirectoryListing;
@@ -176,18 +193,28 @@ namespace atlas
                     ctx.RequestPath += location.Index;
             }
 
-            ctx.RequestPath = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
 
-            if (!File.Exists(ctx.RequestPath))
+            if (location.CGI)
             {
-                await ctx.NotFound();
+                var counter = 0;
+                foreach (var line in CGI.ExecuteScript(ctx, location.Index, location.AbsoluteRootPath))
+                {
+                    var l = line;
+                    if (counter == 0)
+                        l += "\r\n";
+                    else
+                        l += '\n';
+                    ctx.Stream.Write(Encoding.UTF8.GetBytes(l));
+                    ctx.Stream.Flush();
+                    counter++;
+                }
                 return;
             }
 
-            if(location.CGI)
+            ctx.RequestPath = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
+            if (!File.Exists(ctx.RequestPath))
             {
-                var content = await CGI.ExecuteScript(ctx as GeminiCtx, location.Index, location.AbsoluteRootPath);
-                await ctx.Success(Encoding.UTF8.GetBytes(content));
+                await ctx.NotFound();
                 return;
             }
 
@@ -204,7 +231,7 @@ namespace atlas
             var absoluteDestinationPath = Path.Combine(ctx.Capsule.AbsoluteRootPath, pathUri.AbsolutePath[1..]);
             var mimeType = Util.GetMimeType(Path.GetExtension(pathUri.AbsolutePath));
 
-            await UploadFile(ctx,absoluteDestinationPath,pathUri,mimeType,size);   
+            await UploadFile(ctx, absoluteDestinationPath, pathUri, mimeType, size);
         }
         public static async ValueTask HandleUpload(GeminiCtx ctx)
         {
@@ -214,39 +241,30 @@ namespace atlas
             var mimeType = "text/gemini";
             var strSizeBytes = "0";
 
-            for(int i = 0; i<titanArgs.Length;i++)
+            for (int i = 0; i < titanArgs.Length; i++)
             {
                 var arg = titanArgs[i];
                 var kvp = arg.Split('=');
 
-                if(kvp[0] == "mime")
+                if (kvp[0] == "mime")
                     mimeType = kvp[1];
-                if(kvp[0] == "size")
+                if (kvp[0] == "size")
                     strSizeBytes = kvp[1];
-                if(kvp[0] == "charset")
+                if (kvp[0] == "charset")
                     continue;
             }
             var size = int.Parse(strSizeBytes);
-            
-            await UploadFile(ctx,path,pathUri,mimeType,size);     
+
+            await UploadFile(ctx, path, pathUri, mimeType, size);
         }
 
         public static async ValueTask UploadFile(AtlasCtx ctx, string path, Uri pathUri, string mimeType, int size)
         {
             var location = ctx.Capsule.GetLocation(pathUri);
-            var isAllowedType = false;
 
             if (string.IsNullOrEmpty(path) || location == null)
             {
                 await ctx.BadRequest("missing filaneme or forbidden path");
-                return;
-            }
-
-            isAllowedType = location.AllowedMimeTypes.Any(x => x.Key.ToLowerInvariant() == mimeType.ToLowerInvariant() || (x.Key.ToLowerInvariant().Split('/')[1] == "*" && mimeType.Split('/')[0] == x.Key.ToLowerInvariant().Split('/')[0]));
-
-            if (!isAllowedType)
-            {
-                await ctx.BadRequest("mimetype not allowed here");
                 return;
             }
 
@@ -256,14 +274,22 @@ namespace atlas
                 return;
             }
 
+            var isAllowedType = location.AllowedMimeTypes.Any(x => x.Key.ToLowerInvariant() == mimeType.ToLowerInvariant() || (x.Key.ToLowerInvariant().Split('/')[1] == "*" && mimeType.Split('/')[0] == x.Key.ToLowerInvariant().Split('/')[0]));
+
+            if (!isAllowedType)
+            {
+                await ctx.BadRequest("mimetype not allowed here");
+                return;
+            }
+
             var data = new byte[size];
             var fileLen = 0;
             while (fileLen != size)
-                fileLen += await ctx.Stream.ReadAsync(data.AsMemory(fileLen, size - fileLen));
+                fileLen += await ctx.Stream.ReadAsync(data.AsMemory(fileLen, size - fileLen));          
 
             Console.WriteLine("Finished");
             File.WriteAllBytes(path, data);
-            await ctx.Redirect($"{Path.GetDirectoryName(pathUri.AbsolutePath)}/");  
+            await ctx.Redirect($"{Path.GetDirectoryName(pathUri.AbsolutePath)}/");
         }
         public static void CloseConnection(AtlasCtx ctx)
         {
