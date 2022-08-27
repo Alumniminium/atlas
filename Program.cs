@@ -4,15 +4,19 @@ namespace atlas
 {
     class Program
     {
+        public static Configuration Config { get; set; }
         public static Dictionary<string, string> ExtensionToMimeType = new();
         public static Dictionary<string, string> MimeTypeToExtension = new();
+        public static GeminiServer geminiServer = new ();
+        public static SpartanServer spartanServer = new ();
 
         static void Main()
         {
             LoadMimeMap();
             LoadConfig();
             Console.WriteLine("Atlas ready!");
-            Server.Start();
+            geminiServer.Start();
+            spartanServer.Start();
 
             while(true)
                 Thread.Sleep(int.MaxValue);
@@ -20,11 +24,10 @@ namespace atlas
 
         private static void LoadConfig()
         {
-            if (File.Exists("config.json"))
-                Server.Config = JsonSerializer.Deserialize<Configuration>(File.ReadAllText("config.json"));
-            else if (File.Exists("/etc/atlas/config.json"))
-                Server.Config = JsonSerializer.Deserialize<Configuration>(File.ReadAllText("/etc/atlas/config.json"));
-            if (Server.Config == null)
+            if (File.Exists("/etc/atlas/config.json"))
+                Config = JsonSerializer.Deserialize<Configuration>(File.ReadAllText("/etc/atlas/config.json"));
+                
+            if (Config == null)
             {
                 Console.WriteLine("Failed to load configuration. Does config.json exist?");
                 Console.WriteLine($"Looking @ '/etc/atlas/config.json'");
@@ -32,9 +35,9 @@ namespace atlas
                 Console.WriteLine($"");
                 Console.WriteLine($"--- Creating Default Configuration ---");
                 Console.WriteLine($"");
-                Server.Config = new Configuration()
+                Config = new Configuration()
                 {
-                    Port = 1965,
+                    GeminiPort = 1965,
                     Capsules = new()
                     {
                         [Environment.MachineName] = new Capsule()
@@ -80,7 +83,7 @@ namespace atlas
                     }
 
                 };
-                var json = JsonSerializer.Serialize(Server.Config, new JsonSerializerOptions() 
+                var json = JsonSerializer.Serialize(Config, new JsonSerializerOptions() 
                 { 
                     WriteIndented = true,
                     DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Always,

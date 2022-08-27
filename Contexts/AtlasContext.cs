@@ -4,18 +4,13 @@ namespace atlas.Contexts
 {
     public abstract class AtlasCtx
     {
+        public bool IsGemini => this is GeminiCtx;
         public abstract int MaxHeaderSize {get;set;}
         public Socket Socket;
         public Stream Stream;
         public Capsule Capsule;
-        public virtual Uri Uri => new(RequestPath);
+        public virtual Uri Uri => new(Request);
         public string Request { get; set; }
-        public string RequestPath;
-        public bool DirectoryListing { get; set; }
-        public abstract ValueTask NotFound();
-        public abstract ValueTask BadRequest(string reason);
-        public abstract ValueTask Success(byte[] data, string mimeType = "text/gemini");
-        public abstract ValueTask ServerError(Exception e);
-        public abstract ValueTask Redirect(string target);
+        public string IP => Socket.RemoteEndPoint.ToString().Split(':')[0];
     }
 }
