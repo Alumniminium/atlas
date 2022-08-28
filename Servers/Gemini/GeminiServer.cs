@@ -3,9 +3,8 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using atlas.Contexts;
 
-namespace atlas
+namespace atlas.Servers.Gemini
 {
     public class GeminiServer : GenericServer
     {
@@ -87,7 +86,7 @@ namespace atlas
             }
             return ctx.Capsule != null;
         }
-        public async ValueTask<Response> ProcessUploadRequest(GeminiCtx ctx)
+        public static async ValueTask<Response> ProcessUploadRequest(GeminiCtx ctx)
         {
             var titanArgs = ctx.Request.Split(';');
             var pathUri = new Uri(titanArgs[0]);
@@ -111,10 +110,5 @@ namespace atlas
 
             return await UploadFile(ctx, path, pathUri, mimeType, size).ConfigureAwait(false);
         }
-        
-        public override Response NotFound(string message) => new($"{(int)GeminiStatusCode.FailurePerm} {message}.\r\n");
-        public override Response BadRequest(string reason) => new($"{(int)GeminiStatusCode.BadRequest} {reason}\r\n");
-        public override Response Redirect(string target) => new($"{(int)GeminiStatusCode.RedirectTemp} {target}\r\n");
-        public override Response Ok(byte[] data, string mimeType = "text/gemini") => new(false, mimeType, data);
     }
 }

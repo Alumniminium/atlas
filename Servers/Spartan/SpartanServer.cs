@@ -1,8 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
-using atlas.Contexts;
 
-namespace atlas
+namespace atlas.Servers.Spartan
 {
     public class SpartanServer : GenericServer
     {
@@ -57,7 +56,7 @@ namespace atlas
             return size;
         }
 
-        public async ValueTask<Response> ProcessUploadRequest(SpartanCtx ctx)
+        public static async ValueTask<Response> ProcessUploadRequest(SpartanCtx ctx)
         {
             var parts = ctx.Request.Split(' ');
             var pathUri = new Uri(parts[1]);
@@ -67,10 +66,5 @@ namespace atlas
 
             return await UploadFile(ctx, absoluteDestinationPath, pathUri, mimeType, size).ConfigureAwait(false);
         }
-
-        public override Response NotFound(string message) => new($"{(int)SpartanStatusCode.ClientError} {message}.\r\n");
-        public override Response BadRequest(string reason) => new($"{(int)SpartanStatusCode.ServerError} {reason}\r\n");
-        public override Response Redirect(string target) => new($"{(int)SpartanStatusCode.Redirect} {target}\r\n");
-        public override Response Ok(byte[] data, string mimeType = "text/gemini") => new(true, mimeType, data);
     }
 }

@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using atlas.Contexts;
+using atlas.Servers.Gemini;
 
-namespace atlas
+namespace atlas.Servers
 {
     public static class CGI
     {
@@ -15,8 +15,8 @@ namespace atlas
             info.EnvironmentVariables.Add("DOTNET_CLI_HOME", "/home/trbl/.dotnet");
             info.EnvironmentVariables.Add("PATH", pathVar);
             info.EnvironmentVariables.Add("GATEWAY_INTERFACE", "CGI/1.1");
-            info.EnvironmentVariables.Add("SERVER_PROTOCOL", $"{(ctx is GeminiCtx ? "gemini" : "spartan")}");
-            info.EnvironmentVariables.Add("SERVER_PORT", $"{(ctx is GeminiCtx ? Program.Config.GeminiPort : Program.Config.GeminiPort)}");
+            info.EnvironmentVariables.Add("SERVER_PROTOCOL", $"{(ctx.IsGemini ? "gemini" : "spartan")}");
+            info.EnvironmentVariables.Add("SERVER_PORT", $"{(ctx.IsGemini ? Program.Config.GeminiPort : Program.Config.GeminiPort)}");
             info.EnvironmentVariables.Add("SERVER_SOFTWARE", "atlas/0.1");
             info.EnvironmentVariables.Add("SPARTAN_URL", ctx.Request.Replace("\r\n", ""));
             info.EnvironmentVariables.Add("SCRIPT_NAME", scriptName);
@@ -25,7 +25,7 @@ namespace atlas
             info.EnvironmentVariables.Add("SERVER_NAME", ctx.Capsule.FQDN);
             info.EnvironmentVariables.Add("REMOTE_HOST", ctx.Socket.RemoteEndPoint.ToString());
             info.EnvironmentVariables.Add("REMOTE_ADDR", ctx.Socket.RemoteEndPoint.ToString().Split(':')[0]);
-            info.EnvironmentVariables.Add("AUTH_TYPE", $"{(ctx is GeminiCtx ? "CERTIFICATE" : "NONE")}");
+            info.EnvironmentVariables.Add("AUTH_TYPE", $"{(ctx.IsGemini ? "CERTIFICATE" : "NONE")}");
 
             if (ctx is GeminiCtx gCtx)
             {

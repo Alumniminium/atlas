@@ -1,4 +1,4 @@
-namespace atlas
+namespace atlas.Servers.Gemini
 {
     public enum GeminiStatusCode
     {

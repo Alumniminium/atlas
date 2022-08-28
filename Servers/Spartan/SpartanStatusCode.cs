@@ -1,4 +1,4 @@
-namespace atlas
+namespace atlas.Servers.Spartan
 {
     public enum SpartanStatusCode
     {

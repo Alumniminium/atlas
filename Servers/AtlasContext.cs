@@ -1,6 +1,7 @@
 using System.Net.Sockets;
+using atlas.Servers.Gemini;
 
-namespace atlas.Contexts
+namespace atlas.Servers
 {
     public abstract class AtlasCtx
     {

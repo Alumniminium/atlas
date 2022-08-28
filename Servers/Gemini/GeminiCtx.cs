@@ -1,9 +1,8 @@
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
-namespace atlas.Contexts
+namespace atlas.Servers.Gemini
 {
     public class GeminiCtx : AtlasCtx
     {

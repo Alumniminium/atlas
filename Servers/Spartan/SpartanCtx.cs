@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace atlas.Contexts
+namespace atlas.Servers.Spartan
 {
     public class SpartanCtx : AtlasCtx
     {

@@ -1,8 +1,8 @@
 using System.Net.Sockets;
 using System.Text;
-using atlas.Contexts;
+using atlas.Servers.Gemini;
 
-namespace atlas
+namespace atlas.Servers
 {
     public class GenericServer
     {
@@ -26,13 +26,13 @@ namespace atlas
                 break;
             }
         }
-        public async ValueTask<Response> ProcessGetRequest(AtlasCtx ctx)
+        public static async ValueTask<Response> ProcessGetRequest(AtlasCtx ctx)
         {
             var location = ctx.Capsule.GetLocation(ctx.Uri);
             if (location == null)
             {
                 Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Location not found");
-                return BadRequest("Location not found");
+                return Response.BadRequest("Location not found", !ctx.IsGemini);
             }
 
             if (location.RequireClientCert)
@@ -40,7 +40,7 @@ namespace atlas
                 if (!ctx.IsGemini)
                 {
                     Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> requires certificate but spartan doesn't support that");
-                    return BadRequest("Client Certificate required - Connect using Gemini");
+                    return Response.BadRequest("Client Certificate required - Connect using Gemini", !ctx.IsGemini);
                 }
 
                 var gctx = (GeminiCtx)ctx;
@@ -48,7 +48,7 @@ namespace atlas
                 if (gctx.ClientCert == null)
                 {
                     Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Location '{location.AbsoluteRootPath}' -> requires a certificate but none was sent");
-                    return CertRequired();
+                    return Response.CertRequired();
                 }
             }
 
@@ -58,9 +58,9 @@ namespace atlas
                 if (location.DirectoryListing)
                 {
                     Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Create DirectoryListing");
-                    var gmi = Util.CreateDirectoryListing(ctx, location);
+                    var gmi = CreateDirectoryListing(ctx, location);
                     Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> DirectoryListing -> {gmi.Length} bytes");
-                    return Ok(Encoding.UTF8.GetBytes(gmi));
+                    return Response.Ok(Encoding.UTF8.GetBytes(gmi), "text/gemini", !ctx.IsGemini);
                 }
                 else
                 {
@@ -92,44 +92,44 @@ namespace atlas
             ctx.Request = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
             if (!File.Exists(ctx.Request))
             {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> '{ctx.Request}' -> Not Found");
-                return NotFound(ctx.Request);
+                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Not Found");
+                return Response.NotFound(ctx.Request, !ctx.IsGemini);
             }
 
             var ext = Path.GetExtension(ctx.Request);
             var mimeType = Util.GetMimeType(ext);
             var data = await File.ReadAllBytesAsync(ctx.Request).ConfigureAwait(false);
 
-            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> '{ctx.Request}' -> {data.Length/1024f:0.00}kb of {mimeType}");
-            return Ok(data, mimeType);
+            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {data.Length/1024f:0.00}kb of {mimeType}");
+            return Response.Ok(data, mimeType, !ctx.IsGemini);
         }
 
-        public async ValueTask<Response> UploadFile(AtlasCtx ctx, string path, Uri pathUri, string mimeType, int size)
+        public static async ValueTask<Response> UploadFile(AtlasCtx ctx, string path, Uri pathUri, string mimeType, int size)
         {
             var location = ctx.Capsule.GetLocation(pathUri);
 
             if (string.IsNullOrEmpty(path) || location == null)
             {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> '{ctx.Request}' missing location or path");
-                return BadRequest("missing filaneme or forbidden path");
+                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} missing location or path");
+                return Response.BadRequest("missing filaneme or forbidden path", !ctx.IsGemini);
             }
             if (ctx.Capsule.MaxUploadSize <= size)
             {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> '{ctx.Request}' -> {size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}");
-                return BadRequest($"{size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}");
+                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}");
+                return Response.BadRequest($"{size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}", !ctx.IsGemini);
             }
 
             var isAllowedType = location.AllowedMimeTypes.Any(x => x.Key.ToLowerInvariant() == mimeType.ToLowerInvariant() || (x.Key.ToLowerInvariant().Split('/')[1] == "*" && mimeType.Split('/')[0] == x.Key.ToLowerInvariant().Split('/')[0]));
 
             if (!isAllowedType)
             {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> '{ctx.Request}' -> {mimeType} not allowed at {location.AbsoluteRootPath}");
-                return BadRequest("mimetype not allowed here");
+                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {mimeType} not allowed at {location.AbsoluteRootPath}");
+                return Response.BadRequest("mimetype not allowed here", !ctx.IsGemini);
             }
 
             var data = await ReceivePayload(ctx, size).ConfigureAwait(false);
             File.WriteAllBytes(path, data);
-            return Redirect($"{Path.GetDirectoryName(pathUri.AbsolutePath)}/");
+            return Response.Redirect($"{Path.GetDirectoryName(pathUri.AbsolutePath)}/", !ctx.IsGemini);
         }
 
         private static async Task<byte[]> ReceivePayload(AtlasCtx ctx, int size)
@@ -145,6 +145,20 @@ namespace atlas
             return data;
         }
 
+        public static string CreateDirectoryListing(AtlasCtx ctx, Location loc)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("### LAST  MODIFIED   |  SIZE  | NAME");
+            
+            foreach (var file in Directory.GetFiles(loc.AbsoluteRootPath).OrderBy(x => x))
+            {
+                var fi = new FileInfo(file);
+                sb.AppendLine($"=> {ctx.Uri.Scheme}://{ctx.Capsule.FQDN}/{loc.AbsoluteRootPath.Replace(ctx.Capsule.AbsoluteRootPath, "")}/{Path.GetFileName(file)} {Util.CenterString(fi.CreationTimeUtc.ToString(), 26)} | {Util.CenterString($"{fi.Length / 1024 / 1024f:0.00}mb", 10)} | {Path.GetFileName(file)}");
+            }
+
+            return sb.ToString();
+        }
+
         public static void CloseConnection(AtlasCtx ctx)
         {
             Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> complete"); 
@@ -152,11 +166,5 @@ namespace atlas
             ctx.Stream.Dispose();
             ctx.Socket.Dispose();
         }
-
-        public virtual Response BadRequest(string message) => throw new InvalidOperationException("Override this method");
-        public virtual Response Ok(byte[] data, string mimeType = "text/gemini") => throw new InvalidOperationException("Override this method");
-        public virtual Response NotFound(string message) => throw new InvalidOperationException("Override this method");
-        public virtual Response Redirect(string to) => throw new InvalidOperationException("Override this method");
-        public static Response CertRequired() => new($"{(int)GeminiStatusCode.ClientCertRequired}\r\n");
     }
 }
