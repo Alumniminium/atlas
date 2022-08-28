@@ -35,16 +35,15 @@ namespace atlas.Servers.Spartan
             try
             {
                 await ReceiveRequest(ctx).ConfigureAwait(false);
+                int size = ParseRequest(ctx);
 
-                if (!Uri.IsWellFormedUriString($"spartan://{ctx.Request}", UriKind.Absolute))
+                if (!Uri.IsWellFormedUriString(ctx.Request, UriKind.Absolute))
                 {
                     await ctx.Stream.WriteAsync(Response.BadRequest("invalid request"));
                     return;
                 }
 
                 ctx.Uri = new Uri(ctx.Request);
-
-                int size = ParseRequest(ctx);
 
                 if (size > 0)
                     response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
@@ -66,7 +65,7 @@ namespace atlas.Servers.Spartan
 
             if (Program.Config.Capsules.TryGetValue(host, out var capsule))
                 ctx.Capsule = capsule;
-            ctx.Request = path;
+            ctx.Request = $"spartan://{host}{path}";
 
             return size;
         }
