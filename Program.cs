@@ -7,8 +7,8 @@ namespace atlas
         public static Configuration Config { get; set; }
         public static Dictionary<string, string> ExtensionToMimeType = new();
         public static Dictionary<string, string> MimeTypeToExtension = new();
-        public static GeminiServer geminiServer = new ();
-        public static SpartanServer spartanServer = new ();
+        public static GeminiServer geminiServer;
+        public static SpartanServer spartanServer;
 
         static void Main()
         {
@@ -20,8 +20,8 @@ namespace atlas
             geminiServer = new ();
             geminiServer.Start();
             Console.WriteLine("Starting Spartan...");
-            spartanServer.Start();
             spartanServer = new ();
+            spartanServer.Start();
             Console.WriteLine("Atlas Ready!");
 
             while(true)

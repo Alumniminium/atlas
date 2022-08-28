@@ -71,6 +71,6 @@ namespace atlas
         public override Response NotFound(string message) => new($"{(int)SpartanStatusCode.ClientError} {message}.\r\n");
         public override Response BadRequest(string reason) => new($"{(int)SpartanStatusCode.ServerError} {reason}\r\n");
         public override Response Redirect(string target) => new($"{(int)SpartanStatusCode.Redirect} {target}\r\n");
-        public override Response Ok(byte[] data, string mimeType = "text/gemini") => new(mimeType, data);
+        public override Response Ok(byte[] data, string mimeType = "text/gemini") => new(true, mimeType, data);
     }
 }

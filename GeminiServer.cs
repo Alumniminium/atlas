@@ -111,9 +111,10 @@ namespace atlas
 
             return await UploadFile(ctx, path, pathUri, mimeType, size).ConfigureAwait(false);
         }
+        
         public override Response NotFound(string message) => new($"{(int)GeminiStatusCode.FailurePerm} {message}.\r\n");
         public override Response BadRequest(string reason) => new($"{(int)GeminiStatusCode.BadRequest} {reason}\r\n");
         public override Response Redirect(string target) => new($"{(int)GeminiStatusCode.RedirectTemp} {target}\r\n");
-        public override Response Ok(byte[] data, string mimeType = "text/gemini") => new(mimeType, data);
+        public override Response Ok(byte[] data, string mimeType = "text/gemini") => new(false, mimeType, data);
     }
 }
