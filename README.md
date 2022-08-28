@@ -18,6 +18,16 @@
 * easy tsv Mimetype map
 * dockerfile available
 
+## Roadmap (in no particular order):
+
+* FastCGI
+* Use single Docker volume
+* caching
+* certificate validation
+* rate limiting
+* proper networking with SocketAsyncEventArgs
+* * not a priority, testing shows it scales to a few 100 concurrent users
+
 ## Sample configuration
 ```json
 {
