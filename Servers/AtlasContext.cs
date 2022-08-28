@@ -10,7 +10,7 @@ namespace atlas.Servers
         public Socket Socket;
         public Stream Stream;
         public Capsule Capsule;
-        public virtual Uri Uri => new(Request);
+        public Uri Uri;
         public string Request { get; set; }
         public string IP => Socket.RemoteEndPoint.ToString().Split(':')[0];
     }

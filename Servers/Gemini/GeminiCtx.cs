@@ -7,7 +7,6 @@ namespace atlas.Servers.Gemini
     public class GeminiCtx : AtlasCtx
     {
         public override int MaxHeaderSize {get;set;}= 1024;
-        public override Uri Uri => new(Request);
         public X509Certificate ServerCert => (Stream as SslStream).LocalCertificate;
         public X509Certificate ClientCert => (Stream as SslStream).RemoteCertificate;
         public string ClientIdentity => ClientCert.Subject.Replace("CN=", "");

@@ -22,17 +22,31 @@ namespace atlas.Servers
                     continue;
 
                 ctx.Request = string.Join(' ', ctx.Request[..^2]);
+                ctx.Request = ctx.Request.Replace($":{Program.Config.GeminiPort}", "");
+                ctx.Request = ctx.Request.Replace($":{Program.Config.SpartanPort}", "");
                 Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Size: {length} bytes");
                 break;
             }
         }
         public static async ValueTask<Response> ProcessGetRequest(AtlasCtx ctx)
         {
+            if (ctx.Request.Contains(".."))
+                return Response.BadRequest("invalid request", !ctx.IsGemini);
+            if (ctx.Uri.Host != ctx.Capsule.FQDN)
+                return Response.ProxyDenied();
+            if (ctx.Uri.Port != -1)
+            {
+                if (ctx.IsGemini && ctx.Uri.Port != Program.Config.GeminiPort)
+                    return Response.ProxyDenied();
+                if (ctx.Uri.Port != Program.Config.SpartanPort && !ctx.IsGemini)
+                    return Response.BadRequest("port invalid", !ctx.IsGemini);
+            }
+
             var location = ctx.Capsule.GetLocation(ctx.Uri);
             if (location == null)
             {
                 Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Location not found");
-                return Response.BadRequest("Location not found", !ctx.IsGemini);
+                return Response.NotFound("Location not found", !ctx.IsGemini);
             }
 
             if (location.RequireClientCert)
@@ -65,7 +79,8 @@ namespace atlas.Servers
                 else
                 {
                     Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Adding {location.Index} to request");
-                    ctx.Request += location.Index;
+                    ctx.Request = Path.Combine(ctx.Request, location.Index);
+                    ctx.Uri = new Uri(ctx.Request);
                 }
             }
 
@@ -90,6 +105,7 @@ namespace atlas.Servers
             }
 
             ctx.Request = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
+            
             if (!File.Exists(ctx.Request))
             {
                 Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Not Found");
@@ -100,7 +116,7 @@ namespace atlas.Servers
             var mimeType = Util.GetMimeType(ext);
             var data = await File.ReadAllBytesAsync(ctx.Request).ConfigureAwait(false);
 
-            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {data.Length/1024f:0.00}kb of {mimeType}");
+            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {data.Length / 1024f:0.00}kb of {mimeType}");
             return Response.Ok(data, mimeType, !ctx.IsGemini);
         }
 
@@ -134,13 +150,13 @@ namespace atlas.Servers
 
         private static async Task<byte[]> ReceivePayload(AtlasCtx ctx, int size)
         {
-            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> receiving {size/1024f:0.00}kb payload");    
+            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> receiving {size / 1024f:0.00}kb payload");
             var data = new byte[size];
             var fileLen = 0;
             while (fileLen != size)
             {
                 fileLen += await ctx.Stream.ReadAsync(data.AsMemory(fileLen, size - fileLen)).ConfigureAwait(false);
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> received {fileLen}/{size}"); 
+                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> received {fileLen}/{size}");
             }
             return data;
         }
@@ -149,7 +165,7 @@ namespace atlas.Servers
         {
             var sb = new StringBuilder();
             sb.AppendLine("### LAST  MODIFIED   |  SIZE  | NAME");
-            
+
             foreach (var file in Directory.GetFiles(loc.AbsoluteRootPath).OrderBy(x => x))
             {
                 var fi = new FileInfo(file);
@@ -161,8 +177,9 @@ namespace atlas.Servers
 
         public static void CloseConnection(AtlasCtx ctx)
         {
-            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> complete"); 
+            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> complete");
             ctx.Stream.Flush();
+            ctx.Socket.Close();
             ctx.Stream.Dispose();
             ctx.Socket.Dispose();
         }

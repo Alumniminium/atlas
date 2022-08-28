@@ -22,7 +22,7 @@ namespace atlas.Servers
             if (spartan)
                 return new($"{(int)SpartanStatusCode.ServerError} {message}.\r\n");
 
-            return new($"{(int)GeminiStatusCode.FailurePerm} {message}.\r\n");
+            return new($"{(int)GeminiStatusCode.NotFound} {message}.\r\n");
         }
 
         public static Response BadRequest(string reason, bool spartan = false)
@@ -39,6 +39,7 @@ namespace atlas.Servers
             return new($"{(int)GeminiStatusCode.RedirectTemp} {target}\r\n");
         }
 
+        public static Response ProxyDenied() => new($"{(int)GeminiStatusCode.ProxyRequestRefused}\r\n");
         public static Response Ok(byte[] data, string mimeType = "text/gemini", bool spartan = false) => new(spartan, mimeType, data);
         public static Response CertRequired() => new($"{(int)GeminiStatusCode.ClientCertRequired}\r\n");
         public static implicit operator ReadOnlyMemory<byte>(Response r) => r.Bytes.AsMemory();

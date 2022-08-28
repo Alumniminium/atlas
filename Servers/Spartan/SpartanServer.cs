@@ -11,35 +11,50 @@ namespace atlas.Servers.Spartan
             Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Config.SpartanPort));
             Socket.Listen();
         }
+        
         public async void Start()
         {
             while (true)
             {
                 Console.WriteLine("[SPARTAN] Waiting for connection...");
-                var clientSocket = await Socket.AcceptAsync().ConfigureAwait(false);
+                var socket = await Socket.AcceptAsync().ConfigureAwait(false);
 
-                var ctx = new SpartanCtx()
-                {
-                    Socket = clientSocket,
-                    Stream = new NetworkStream(clientSocket)
-                };
-                Response response;
-
-                try
-                {
-                    await ReceiveRequest(ctx).ConfigureAwait(false);
-                    int size = ParseRequest(ctx);
-
-                    if (size > 0)
-                        response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
-                    else
-                        response = await ProcessGetRequest(ctx).ConfigureAwait(false);
-
-                    await ctx.Stream.WriteAsync(response);
-                }
-                catch (Exception e) { Console.WriteLine(e); }
-                finally { CloseConnection(ctx); }
+                var task = Task.Run(async () => await ProcessSocket(socket).ConfigureAwait(false));
             }
+        }
+
+        private static async ValueTask ProcessSocket(Socket clientSocket)
+        {
+            var ctx = new SpartanCtx()
+            {
+                Socket = clientSocket,
+                Stream = new NetworkStream(clientSocket)
+            };
+            Response response;
+
+            try
+            {
+                await ReceiveRequest(ctx).ConfigureAwait(false);
+
+                if (!Uri.IsWellFormedUriString($"spartan://{ctx.Request}", UriKind.Absolute))
+                {
+                    await ctx.Stream.WriteAsync(Response.BadRequest("invalid request"));
+                    return;
+                }
+
+                ctx.Uri = new Uri(ctx.Request);
+
+                int size = ParseRequest(ctx);
+
+                if (size > 0)
+                    response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
+                else
+                    response = await ProcessGetRequest(ctx).ConfigureAwait(false);
+
+                await ctx.Stream.WriteAsync(response);
+            }
+            catch (Exception e) { Console.WriteLine(e); }
+            finally { CloseConnection(ctx); }
         }
 
         private static int ParseRequest(SpartanCtx ctx)

@@ -34,37 +34,55 @@ namespace atlas.Servers.Gemini
 
         public async void Start()
         {
+            var tasks = new List<Task>();
             while (true)
             {
                 Console.WriteLine("[GEMINI] Waiting for connection...");
-                var clientSocket = await Socket.AcceptAsync().ConfigureAwait(false); ;
+                var socket = await Socket.AcceptAsync().ConfigureAwait(false);
 
-                var ctx = new GeminiCtx()
-                {
-                    Socket = clientSocket,
-                    Stream = new SslStream(new NetworkStream(clientSocket), false)
-                };
-                Response response;
-
-                try
-                {
-                    var success = await HandShake(ctx).ConfigureAwait(false);
-                    if (!success)
-                        continue;
-                        
-                    await ReceiveRequest(ctx).ConfigureAwait(false);
-
-                    if (ctx.Uri.Scheme == "titan")
-                        response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
-                    else
-                        response = await ProcessGetRequest(ctx).ConfigureAwait(false);
-
-                    await ctx.Stream.WriteAsync(response);
-                }
-                catch (Exception e) { Console.WriteLine(e); }
-                finally { CloseConnection(ctx); }
+                var task = Task.Run(async () => await ProcessSocket(socket).ConfigureAwait(false));
             }
         }
+
+        private async ValueTask ProcessSocket(Socket clientSocket)
+        {
+            var ctx = new GeminiCtx()
+            {
+                Socket = clientSocket,
+                Stream = new SslStream(new NetworkStream(clientSocket), false)
+            };
+            Response response;
+
+            try
+            {
+                var success = await HandShake(ctx).ConfigureAwait(false);
+                if (!success)
+                    return;
+
+                await ReceiveRequest(ctx).ConfigureAwait(false);
+
+                if (!Uri.IsWellFormedUriString(ctx.Request, UriKind.Absolute))
+                {
+                    await ctx.Stream.WriteAsync(Response.BadRequest("invalid request"));
+                    return;
+                }
+
+                ctx.Uri = new Uri(ctx.Request);
+
+                if (ctx.Uri.Scheme == "titan")
+                    response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
+                else
+                    response = await ProcessGetRequest(ctx).ConfigureAwait(false);
+
+                await ctx.Stream.WriteAsync(response);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+            finally { CloseConnection(ctx); }
+        }
+
         public async ValueTask<bool> HandShake(GeminiCtx ctx)
         {
             try
