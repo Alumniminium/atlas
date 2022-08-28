@@ -1,17 +1,19 @@
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using atlas.Contexts;
 
 namespace atlas
 {
     public class SpartanServer : GenericServer
     {
-        public async ValueTask Start()
+        public SpartanServer()
         {
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Config.SpartanPort));
             Socket.Listen();
+        }
+        public async void Start()
+        {
             while (true)
             {
                 Console.WriteLine("[SPARTAN] Waiting for connection...");
@@ -22,39 +24,40 @@ namespace atlas
                     Socket = clientSocket,
                     Stream = new NetworkStream(clientSocket)
                 };
+                Response response;
 
                 try
                 {
                     await ReceiveRequest(ctx).ConfigureAwait(false);
-                    var parts = ctx.Request.Split(' ');
-                    var host = parts[0];
-                    var path = parts[1];
-                    var size = int.Parse(parts[2]);
+                    int size = ParseRequest(ctx);
 
-                    if (Program.Config.Capsules.TryGetValue(host, out var capsule))
-                        ctx.Capsule = capsule;
-                    ctx.Request = path;
-
-                    Response response;
-        
                     if (size > 0)
-                        response = await HandleUpload(ctx).ConfigureAwait(false);
+                        response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
                     else
-                        response = await HandleRequest(ctx).ConfigureAwait(false);
+                        response = await ProcessGetRequest(ctx).ConfigureAwait(false);
 
-                    await ctx.Stream.WriteAsync(response.Bytes);
+                    await ctx.Stream.WriteAsync(response);
                 }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-                finally
-                {
-                    CloseConnection(ctx);
-                }
+                catch (Exception e) { Console.WriteLine(e); }
+                finally { CloseConnection(ctx); }
             }
         }
-        public async ValueTask<Response> HandleUpload(SpartanCtx ctx)
+
+        private static int ParseRequest(SpartanCtx ctx)
+        {
+            var parts = ctx.Request.Split(' ');
+            var host = parts[0];
+            var path = parts[1];
+            var size = int.Parse(parts[2]);
+
+            if (Program.Config.Capsules.TryGetValue(host, out var capsule))
+                ctx.Capsule = capsule;
+            ctx.Request = path;
+
+            return size;
+        }
+
+        public async ValueTask<Response> ProcessUploadRequest(SpartanCtx ctx)
         {
             var parts = ctx.Request.Split(' ');
             var pathUri = new Uri(parts[1]);
@@ -65,16 +68,9 @@ namespace atlas
             return await UploadFile(ctx, absoluteDestinationPath, pathUri, mimeType, size).ConfigureAwait(false);
         }
 
-        public override Response NotFound(string message) => new(Encoding.UTF8.GetBytes($"{(int)SpartanStatusCode.ClientError} {message}.\r\n"));
-        public override Response BadRequest(string reason) => new(Encoding.UTF8.GetBytes($"{(int)SpartanStatusCode.ServerError} {reason}\r\n"));
-        public override Response Redirect(string target) => new(Encoding.UTF8.GetBytes($"{(int)SpartanStatusCode.Redirect} {target}\r\n"));
-        public override Response Ok(byte[] data, string mimeType = "text/gemini")
-        {
-            var header = Encoding.UTF8.GetBytes($"{(int)SpartanStatusCode.Success} {mimeType}; charset=utf-8\r\n");
-            var buffer = new byte[header.Length + data.Length];
-            Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            Buffer.BlockCopy(data, 0, buffer, header.Length, data.Length);
-            return new Response(data);
-        }
+        public override Response NotFound(string message) => new($"{(int)SpartanStatusCode.ClientError} {message}.\r\n");
+        public override Response BadRequest(string reason) => new($"{(int)SpartanStatusCode.ServerError} {reason}\r\n");
+        public override Response Redirect(string target) => new($"{(int)SpartanStatusCode.Redirect} {target}\r\n");
+        public override Response Ok(byte[] data, string mimeType = "text/gemini") => new(mimeType, data);
     }
 }

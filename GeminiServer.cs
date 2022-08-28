@@ -3,7 +3,6 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using atlas.Contexts;
 
 namespace atlas
@@ -20,22 +19,22 @@ namespace atlas
                 EncryptionPolicy = EncryptionPolicy.RequireEncryption,
                 ClientCertificateRequired = true,
             };
-            TlsOptions.ServerCertificateSelectionCallback += (object _, string host) =>
+            TlsOptions.ServerCertificateSelectionCallback += (_, host) =>
             {
                 if (Program.Config.Capsules.TryGetValue(host, out var capsule))
                     return X509Certificate.CreateFromCertFile(capsule.AbsoluteTlsCertPath);
                 return null;
             };
+            TlsOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
 
-            TlsOptions.RemoteCertificateValidationCallback += (object _, X509Certificate _, X509Chain _, SslPolicyErrors _) => true;
-        }
 
-        public async ValueTask Start()
-        {
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Config.GeminiPort));
             Socket.Listen();
+        }
 
+        public async void Start()
+        {
             while (true)
             {
                 Console.WriteLine("[GEMINI] Waiting for connection...");
@@ -46,32 +45,25 @@ namespace atlas
                     Socket = clientSocket,
                     Stream = new SslStream(new NetworkStream(clientSocket), false)
                 };
+                Response response;
 
-                var success = await HandShake(ctx).ConfigureAwait(false);
                 try
                 {
+                    var success = await HandShake(ctx).ConfigureAwait(false);
                     if (!success)
                         continue;
-
+                        
                     await ReceiveRequest(ctx).ConfigureAwait(false);
 
-                    Response response;
-        
                     if (ctx.Uri.Scheme == "titan")
-                        response = await HandleUpload(ctx).ConfigureAwait(false);
+                        response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
                     else
-                        response = await HandleRequest(ctx).ConfigureAwait(false);
-                        
-                    await ctx.Stream.WriteAsync(response.Bytes);
+                        response = await ProcessGetRequest(ctx).ConfigureAwait(false);
+
+                    await ctx.Stream.WriteAsync(response);
                 }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
-                finally
-                {
-                    CloseConnection(ctx);
-                }
+                catch (Exception e) { Console.WriteLine(e); }
+                finally { CloseConnection(ctx); }
             }
         }
         public async ValueTask<bool> HandShake(GeminiCtx ctx)
@@ -95,7 +87,7 @@ namespace atlas
             }
             return ctx.Capsule != null;
         }
-        public async ValueTask<Response> HandleUpload(GeminiCtx ctx)
+        public async ValueTask<Response> ProcessUploadRequest(GeminiCtx ctx)
         {
             var titanArgs = ctx.Request.Split(';');
             var pathUri = new Uri(titanArgs[0]);
@@ -119,17 +111,9 @@ namespace atlas
 
             return await UploadFile(ctx, path, pathUri, mimeType, size).ConfigureAwait(false);
         }
-        public override Response NotFound(string message) => new(Encoding.UTF8.GetBytes($"{(int)GeminiStatusCode.FailurePerm} {message}.\r\n"));
-        public override Response BadRequest(string reason) => new(Encoding.UTF8.GetBytes($"{(int)GeminiStatusCode.BadRequest} {reason}\r\n"));
-        public override Response Redirect(string target) => new(Encoding.UTF8.GetBytes($"{(int)GeminiStatusCode.RedirectTemp} {target}\r\n"));
-        public override Response Ok(byte[] data, string mimeType = "text/gemini")
-        {
-            var header = Encoding.UTF8.GetBytes($"{(int)GeminiStatusCode.Success} {mimeType}; charset=utf-8\r\n");
-            var buffer = new byte[header.Length + data.Length];
-            Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            Buffer.BlockCopy(data, 0, buffer, header.Length, data.Length);
-            return new Response(buffer);
-        }
-
+        public override Response NotFound(string message) => new($"{(int)GeminiStatusCode.FailurePerm} {message}.\r\n");
+        public override Response BadRequest(string reason) => new($"{(int)GeminiStatusCode.BadRequest} {reason}\r\n");
+        public override Response Redirect(string target) => new($"{(int)GeminiStatusCode.RedirectTemp} {target}\r\n");
+        public override Response Ok(byte[] data, string mimeType = "text/gemini") => new(mimeType, data);
     }
 }

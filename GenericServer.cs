@@ -26,7 +26,7 @@ namespace atlas
                 break;
             }
         }
-        public async ValueTask<Response> HandleRequest(AtlasCtx ctx)
+        public async ValueTask<Response> ProcessGetRequest(AtlasCtx ctx)
         {
             var location = ctx.Capsule.GetLocation(ctx.Uri);
             if (location == null)
@@ -63,7 +63,6 @@ namespace atlas
                     ctx.Request += location.Index;
             }
 
-
             if (location.CGI)
             {
                 var counter = 0;
@@ -78,7 +77,7 @@ namespace atlas
                     ctx.Stream.Flush();
                     counter++;
                 }
-                return new Response(default);
+                return new ("");
             }
 
             ctx.Request = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
@@ -106,15 +105,22 @@ namespace atlas
             if (!isAllowedType)
                 return BadRequest("mimetype not allowed here");
 
-            var data = new byte[size];
-            var fileLen = 0;
-            while (fileLen != size)
-                fileLen += await ctx.Stream.ReadAsync(data.AsMemory(fileLen, size - fileLen)).ConfigureAwait(false);
+            byte[] data = await ReceivePayload(ctx, size).ConfigureAwait(false);
 
             Console.WriteLine("Finished");
             File.WriteAllBytes(path, data);
             return Redirect($"{Path.GetDirectoryName(pathUri.AbsolutePath)}/");
         }
+
+        private static async Task<byte[]> ReceivePayload(AtlasCtx ctx, int size)
+        {
+            var data = new byte[size];
+            var fileLen = 0;
+            while (fileLen != size)
+                fileLen += await ctx.Stream.ReadAsync(data.AsMemory(fileLen, size - fileLen)).ConfigureAwait(false);
+            return data;
+        }
+
         public static void CloseConnection(AtlasCtx ctx)
         {
             ctx.Stream.Flush();
@@ -127,10 +133,6 @@ namespace atlas
         public virtual Response Ok(byte[] data, string mimeType = "text/gemini") => throw new InvalidOperationException("Override this method");
         public virtual Response NotFound(string message) => throw new InvalidOperationException("Override this method");
         public virtual Response Redirect(string to) => throw new InvalidOperationException("Override this method");
-        public virtual Response CertRequired() 
-        {
-            var bytes = Encoding.UTF8.GetBytes($"{(int)GeminiStatusCode.ClientCertRequired}\r\n");
-            return new Response(bytes);
-        }
+        public static Response CertRequired() => new ($"{(int)GeminiStatusCode.ClientCertRequired}\r\n");
     }
 }

@@ -12,11 +12,17 @@ namespace atlas
 
         static void Main()
         {
+            Console.WriteLine("Loading MimeMap...");
             LoadMimeMap();
+            Console.WriteLine("Loading Config...");
             LoadConfig();
-            Console.WriteLine("Atlas ready!");
+            Console.WriteLine("Starting Gemini...");
+            geminiServer = new ();
             geminiServer.Start();
+            Console.WriteLine("Starting Spartan...");
             spartanServer.Start();
+            spartanServer = new ();
+            Console.WriteLine("Atlas Ready!");
 
             while(true)
                 Thread.Sleep(int.MaxValue);
@@ -31,67 +37,10 @@ namespace atlas
             {
                 Console.WriteLine("Failed to load configuration. Does config.json exist?");
                 Console.WriteLine($"Looking @ '/etc/atlas/config.json'");
-                Console.WriteLine($"Looking @ '{Environment.CurrentDirectory}/config.json'");
                 Console.WriteLine($"");
                 Console.WriteLine($"--- Creating Default Configuration ---");
                 Console.WriteLine($"");
-                Config = new Configuration()
-                {
-                    GeminiPort = 1965,
-                    Capsules = new()
-                    {
-                        [Environment.MachineName] = new Capsule()
-                        {
-                            FQDN = Environment.MachineName,
-                            AbsoluteTlsCertPath = $"/srv/gemini/{Environment.MachineName}/{Environment.MachineName}.pfx",
-                            AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/",
-                            MaxUploadSize = 1024*1024*4,
-                            Index = "index.gmi",
-                            Locations = new()
-                            {
-                                new Location()
-                                {
-                                    Index = "index.gmi",
-                                    AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/",
-                                },
-                                new Location()
-                                {
-                                    Index = "script.sh",
-                                    CGI = true,
-                                    AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/cgi/",
-                                    RequireClientCert = true
-                                },
-                                new Location()
-                                {
-                                    AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/files/",
-                                    DirectoryListing = true,
-                                    AllowFileUploads = true,
-
-                                    AllowedMimeTypes = new()
-                                    {
-                                        ["text/*"] = new MimeConfig
-                                        {
-                                            MaxSizeBytes = 1024 * 1024 * 1, 
-                                        },
-                                        ["image/*"] = new MimeConfig{},
-                                        ["audio/mpeg"] = new MimeConfig{},
-                                        ["audio/ogg"] = new MimeConfig{},
-                                    }
-                                },
-                            }
-                        }
-                    }
-
-                };
-                var json = JsonSerializer.Serialize(Config, new JsonSerializerOptions() 
-                { 
-                    WriteIndented = true,
-                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Always,
-                    IncludeFields=true,
-                    DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
-                });
-
-                Console.WriteLine(json);
+                Console.WriteLine(Configuration.CreateSampleConfig());
                 Environment.Exit(0);
             }
         }
