@@ -4,7 +4,7 @@ namespace atlas
 {
     public class Configuration
     {
-        public ushort SpartanPort { get; set; } = 3000;
+        public ushort SpartanPort { get; set; } = 300;
         public ushort GeminiPort { get; set; } = 1965;
         public Dictionary<string, Capsule> Capsules { get; set; }
 

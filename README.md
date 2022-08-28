@@ -21,7 +21,8 @@
 ## Sample configuration
 ```json
 {
-  "Port": 1965,
+  "GeminiPort": 1965,
+  "SpartanPort": 300,
   "Capsules": {
     "allsafe.net": {
       "AbsoluteRootPath": "/srv/gemini/allsafe.net/",
