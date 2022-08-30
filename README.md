@@ -7,7 +7,7 @@
 * Linux and Windows
 * x86, x64 and ARM
 
-# Features
+## Features
 * gemini:// with titan:// file uploads
 * spartan:// file uploads and downloads
 * CGI interface compatible with [jetforce](https://github.com/michael-lazar/jetforce) 
@@ -18,7 +18,7 @@
 * easy tsv Mimetype map
 * dockerfile available
 
-## Roadmap (in no particular order):
+### Roadmap (in no particular order):
 
 * FastCGI
 * Use single Docker volume
@@ -28,7 +28,7 @@
 * proper networking with SocketAsyncEventArgs
 * * not a priority, testing shows it scales to a few 100 concurrent users
 
-## Sample configuration
+### Sample configuration
 ```json
 {
   "GeminiPort": 1965,
@@ -84,7 +84,7 @@
 }
 ```
 
-## sample CGI script
+### sample CGI script
 please note that csx isnt supported in the docker container
 
 ```cs

@@ -7,6 +7,7 @@ namespace atlas
         public ushort SpartanPort { get; set; } = 300;
         public ushort GeminiPort { get; set; } = 1965;
         public Dictionary<string, Capsule> Capsules { get; set; }
+        public bool SlowMode { get; set; }
 
         internal static object CreateSampleConfig()
         {

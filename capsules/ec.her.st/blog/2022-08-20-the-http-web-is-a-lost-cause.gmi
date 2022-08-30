@@ -1,0 +1,114 @@
+*I'm going to refer to the HTTP/S-BASED internet as 'web' from here on out*
+
+Back in the 80s, the web was a new medium for communication, used by real people to communicate with each other. You'd find a website of someone who wrote about something he was interested in and nothing more. No ads, no tracking, no "call to action" buttons, no JavaScript. There were no newsletters or sign-up forms - just a simple website with a couple of pages that linked to other websites with interesting content. That was the time of truly original content. People would make their "WebRings" and have a page dedicated to linking to other people's websites. 
+
+That's how you found 'content' on the web before search engines like Google ruined it all by incentivizing people to embedd ads, tracking code and keywords into every single page and do shit like "Search Engine Optimization" to get more traffic. In the 90s, more and more people started to get on it and businesses started to get really interested too. It was all about email, and how to use it to market your business and get more people to buy your stuff. 
+
+Today, it's a big mess. The web is mostly used by businesses. People don't create websites anymore, they sign up at a couple 'Social-Media' platforms and use it to post pictures of food and to repeat what media outlets say to virtue-signal and get a lot of 'likes' and 'shares' on their posts. It's used to crowdsource 'clout' and dopamine kicks. They know what they are doing. Everyone on the right side of the bell-curve knows what they are doing.
+
+There are no real people anymore, just a bunch of algorithms that have an Instagram account. I came to the conclusion that the web is not an actual medium that allows you to reach an audience or to share your ideas with the world. It's an illusion. It's a bunch of websites that people create for the sole purpose of making money from advertisers. The people running them spend more time on SEO and automation than they do on the actual content.
+
+## all browsers are spyware/malware by Google.
+
+I'm going to keep this section short, you can read my browser post or dig deeper yourself.
+=> /blog/2021-08-03-so-which-browser-is-private.gmi my post on browsers
+=> https://digdeeper.club/articles/browsers.xhtml dig deeper
+
+Mozilla gets the majority of its budget from Google and Firefox just exists as a legal shield for Google against an anticompetitive/monopoly lawsuit. 
+Firefox will die as soon as Google pulls the funding from Mozilla.
+
+**BUT WHAT ABOUT [[PRIVACY BROWSER NAME]]???!?**
+
+They are based on firefox or chromium. They exist at the mercy of Google.
+
+**BUT [[BROWSER NAME]] HAS ITS OWN ENGINE!**
+
+Yes and that browser can't display half of the websites correctly.
+
+# gemini
+
+> You may think of Gemini as "the web, stripped right back to its essence" or as "Gopher, souped up and modernised just a little", depending upon your perspective (the latter view is probably more accurate) -- Project Gemini FAQ
+
+Gemini is a new protocol (june 2019) that explicitly states that it opposes the use of the web for anything other than displaying content. No ads, no tracking, no "call to action" buttons, no JavaScript. Just a lightweight browser that can display .gmi files.
+
+> as of early 2021 there were about 200,000 known Gemini URLs, spread across about 750 "capsules" (the Gemini community's term for "sites"), 500 domains and 600 IP addresses. -- Project Gemini FAQ
+
+The Protocol is so simple that it's possible to implement it and create a basic browser  in a single weekend. I'm going to attempt this myself - stay tuned for that - it's a fun project. Also there seems to be a lot of interest in the project.
+
+According to the statistics 
+=> gemini://gemini.bortzmeyer.org/ there's 2622 of them, totaling about half a million of URIs.
+
+There's quite a bit of content on gemini!
+
+## no server-side styling
+
+There's no css support. There's no styling support what-so-ever on the server. The rationale is, the CLIENT is the one who decides how to display the content. Finally we can have unified styling across all sites! No need for 'dark mode' extensions that make the content look like shit.
+
+## the protocol will never change
+
+If you write your own client for fun, you can use the protocol today, tomorrow and in 10 years, without having to update your code.
+
+## the markup language will never change
+
+The markup language is Gemtext. It's a simple markup language that will not change.
+Unlike Markup (and Markdown...) which has different flavours, Gemini Markup is consistent.
+
+## gemini markup
+
+* Long lines get wrapped by the client to fit the screen
+* Short lines *don't* get joined together unlike Markdown
+* Write paragraphs as single long lines
+* Blank lines are rendered as blank lines
+
+```
+Headings
+# Heading
+## Sub-heading
+### Sub-Sub-heading
+
+List
+* Mercury
+* Gemini
+* Apollo
+
+Quote
+> I contend that text-based websites should not exceed in size the major works of Russian literature.
+
+Code
+    ```
+        echo "Hello World"
+    ```
+
+```
+
+And that's it. Easy to learn, easy to style locally, easy to parse and render. There's no special syntax.
+
+## quickstart
+
+I'm currently using lagrange - a gui client - until my own one is done. The website looks exactly like how the client renders gemini sites out of the box. https://geminiquickst.art/ is a great place to start exploring.
+
+=> https://geminiquickst.art/ geminiquickstart.art
+
+## gemini sites (capsules)
+
+=> gemini://gemini.bortzmeyer.org - Crawler, Statistics about Capsules, Gemini Software
+=> gemini://heavysquare.com - A personal blog about tech, coding and random thoughts
+=> gemini://astrobotany.mozz.us - Virtual Garden Game
+=> gemini://mozz.us - cool collection of projects like geminichat
+=> gemini://tilde.pink -  tilde.pink is an open tilde server, providing shell, email, and gopher/gemini accounts.
+=> gemini://konpeito.media - Low-Fi Music
+=> gemini://rawtext.club - Resist the dazzling spectacle of mainstream social and news media.
+
+### have fun!
+
+I'll be writing my own gemini server called Atlas
+=> https://en.wikipedia.org/wiki/Atlas-Agena Atlas Agena
+=> https://github.com/Alumniminium/atlas atlas on github
+* this capsule is powered by atlas too! *
+
+and my own client called EVA
+=> https://en.wikipedia.org/wiki/Extravehicular_activity Extravehicular Activity  
+
+now - following the gemini naming convention.
+
+Peace!

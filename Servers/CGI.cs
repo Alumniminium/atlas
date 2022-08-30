@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using atlas.Servers.Gemini;
+using atlas.Servers.Spartan;
 
 namespace atlas.Servers
 {
@@ -15,9 +16,9 @@ namespace atlas.Servers
             info.EnvironmentVariables.Add("DOTNET_CLI_HOME", "/home/trbl/.dotnet");
             info.EnvironmentVariables.Add("PATH", pathVar);
             info.EnvironmentVariables.Add("GATEWAY_INTERFACE", "CGI/1.1");
-            info.EnvironmentVariables.Add("SERVER_PROTOCOL", $"{(ctx.IsGemini ? "gemini" : "spartan")}");
-            info.EnvironmentVariables.Add("SERVER_PORT", $"{(ctx.IsGemini ? Program.Config.GeminiPort : Program.Config.GeminiPort)}");
-            info.EnvironmentVariables.Add("SERVER_SOFTWARE", "atlas/0.1");
+            info.EnvironmentVariables.Add("SERVER_PROTOCOL", $"{(ctx.IsGemini ? "GEMINI" : "SPARTAN")}");
+            info.EnvironmentVariables.Add("SERVER_PORT", $"{(ctx.IsGemini ? Program.Config.GeminiPort : Program.Config.SpartanPort)}");
+            info.EnvironmentVariables.Add("SERVER_SOFTWARE", $"atlas/{Program.Version}");
             info.EnvironmentVariables.Add("SPARTAN_URL", ctx.Request.Replace("\r\n", ""));
             info.EnvironmentVariables.Add("SCRIPT_NAME", scriptName);
             info.EnvironmentVariables.Add("PATH_INFO", ctx.Uri.AbsolutePath);
@@ -47,10 +48,10 @@ namespace atlas.Servers
             info.RedirectStandardOutput = true;
             info.RedirectStandardError = true;
 
-            return ExecuteScript(info);
+            return ExecuteScript(info, ctx);
         }
 
-        public static IEnumerable<string> ExecuteScript(ProcessStartInfo info)
+        public static IEnumerable<string> ExecuteScript(ProcessStartInfo info, AtlasCtx ctx)
         {
             var bc = new BlockingCollection<string>();
             var process = new Process
@@ -76,6 +77,11 @@ namespace atlas.Servers
 
                 yield return line;
             }
+            if (process.ExitCode != 0)
+                if (ctx.IsGemini)
+                    yield return $"{GeminiStatusCode.CGIError}\r\n";
+                else
+                    yield return $"{SpartanStatusCode.ServerError}\r\n";
 
             process.Close();
             process.Dispose();

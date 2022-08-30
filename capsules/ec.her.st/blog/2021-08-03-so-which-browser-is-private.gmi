@@ -1,0 +1,54 @@
+A common misconception is that cookies are used for tracking and cleaning cookies or pre-emptively blocking some or even all 3rd party cookies will make you untraceable.
+
+*That might have been the case 10 years ago.*
+
+Today they are tracking you by identifying your browser's and by extension your system's unique characteristics. That's what people mean when they talk about 'fingerprinting' and - contrary to what some cybersecurity 'experts' tell you in their YouTube videos or blogs - there's *nothing* you can do against it.
+
+## but some browsers prevent fingerprinting!
+Yeah so they claim but they don't *really* prevent it. Let's take Brave Browser for example. They have a unique set of measures they take against fingerprinting you, like for example blocking canvas read access or changing the list of fonts it reports to be installed on the host. You might already noticed the issue: a unique set of measures. Already they can deduce that the browser in use is Brave, can simply fingerprint based on other characteristics and so you become - yet again - traceable.
+
+## who are 'they' and what do they use to fingerprint you
+Primarily Google and Facebook. 
+
+Google Analytics is on 99.9% of websites that show up on a google search. It doesn't stop with google analytics though, they also own YouTube and many websites embed YouTube videos. 
+Facebook has the infamous Like button and embedded content, like Photos, Videos, Comments ...
+Both also happily let you sign up with their accounts elsewhere - "Register using Google/Facebook" or "Link your Social Account".
+
+It gets far more insidious when you consider all the spin-offs they own and you probably use as well, like Facebook Messenger, Google Hangouts, WhatsApp, Gmail,...
+
+If you use any of that, it now has a name to your fingerprint, a phone number, emails and all their contents which tell them which other websites you have an account on, where you work and which jobs you applied to among a plethora of other more or less sensitive data.
+
+If you pool all that information together (they do that completely automated) they pretty much know exactly who you are, what you do, where you are and what you like/dislike.
+
+## so what is the solution
+There's only one real solution. Get rid of Facebook and google. Close your accounts, never go back to them. Don't use google to search the internet (use Searx, Startpage), don't use YouTube to watch videos (use PeerTube, Odysee/LBRY), don't use Facebook to stay in touch with your friends and family (meet, chat using XMPP or signal) and instead of GMail, host your own or find yourself an alternative.
+
+## what if i can't get rid of it
+*There's still a way but it's tedious and easy to fuck up.*
+
+* Isolate your browsing habits to different browsers and create new accounts wherever possible. 
+* Have one browser for Facebook. 
+* Have one browser for Google Services and 
+* and another for everything else that's in no way connected to your Google/Facebook accounts.
+
+*AND PAY ATTENTION* 
+
+you probably created a bunch of accounts in other places with Facebook/Google Social Login *OR YOUR GMAIL ADDRESS*. Some accounts might even be connected to both. Logging into any account that's connected to either outside of the designated browser will set you back to square one. Create new accounts if you ever linked them to your social accounts. 
+
+## browser recommendations
+While avoiding Google Chrome and Microsoft Edge might be obvious and needs no explanation, I also avoid Firefox and Brave.
+
+ Firefox blogs about pro-cancel culture stuff and uses Google Search by default - which is their biggest source of income.
+=> https://blog.mozilla.org/en/mozilla/we-need-more-than-deplatforming/ Mozilla: We need more than deplatforming
+ 
+ 
+ Brave has a history of rewriting urls you visit with their affiliate ones
+=> https://www.theverge.com/2020/6/8/21283769/brave-browser-affiliate-links-crypto-privacy-ceo-apology ceo apology on the verge
+
+In the past I've recommended browsers like Dissenter, WaterFox... all of them turned out to be evil. Might as well just abandon hope and give up on the Web.
+
+Gopher could be an alternative
+=> https://datatracker.ietf.org/doc/html/rfc1436 gopher rfc1436
+
+## is that enough?
+No.

@@ -6,6 +6,7 @@ namespace atlas
 {
     class Program
     {
+        public static string Version = "0.2a";
         public static Configuration Config { get; set; }
         public static Dictionary<string, string> ExtensionToMimeType = new();
         public static Dictionary<string, string> MimeTypeToExtension = new();
@@ -19,26 +20,35 @@ namespace atlas
             Console.WriteLine("Loading Config...");
             LoadConfig();
             Console.WriteLine("Starting Gemini...");
-            geminiServer = new ();
+            geminiServer = new();
             geminiServer.Start();
             Console.WriteLine("Starting Spartan...");
-            spartanServer = new ();
+            spartanServer = new();
             spartanServer.Start();
             Console.WriteLine("Atlas Ready!");
 
-            while(true)
+            while (true)
                 Thread.Sleep(int.MaxValue);
         }
 
         private static void LoadConfig()
         {
             if (File.Exists("/etc/atlas/config.json"))
+            {
+                Console.WriteLine($"Loading /etc/atlas/config.json ...");
                 Config = JsonSerializer.Deserialize<Configuration>(File.ReadAllText("/etc/atlas/config.json"));
-                
+            }
+            else if (File.Exists("config.json"))
+            {
+                Console.WriteLine($"Loading {Environment.CurrentDirectory}/config.json ...");
+                Config = JsonSerializer.Deserialize<Configuration>(File.ReadAllText("config.json"));
+            }
+
             if (Config == null)
             {
                 Console.WriteLine("Failed to load configuration. Does config.json exist?");
                 Console.WriteLine($"Looking @ '/etc/atlas/config.json'");
+                Console.WriteLine($"Looking @ '{Environment.CurrentDirectory}/config.json'");
                 Console.WriteLine($"");
                 Console.WriteLine($"--- Creating Default Configuration ---");
                 Console.WriteLine($"");

@@ -7,11 +7,15 @@ namespace atlas.Servers
     public class Response
     {
         public byte[] Bytes;
+
+        public string MimeType { get; set; } = "text/gemini";
+
         public Response(byte[] bytes) => Bytes = bytes;
         public Response(string data) => Bytes = Encoding.UTF8.GetBytes(data);
 
         public Response(bool spartan, string mimeType, byte[] buffer)
         {
+            MimeType = mimeType;
             var header = Encoding.UTF8.GetBytes($"{(spartan ? (int)SpartanStatusCode.Success : (int)GeminiStatusCode.Success)} {mimeType}; charset=utf-8\r\n");
             Bytes = new byte[header.Length + buffer.Length];
             Buffer.BlockCopy(header, 0, Bytes, 0, header.Length);

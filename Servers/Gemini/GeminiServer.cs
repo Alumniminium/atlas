@@ -3,6 +3,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace atlas.Servers.Gemini
 {
@@ -74,7 +75,51 @@ namespace atlas.Servers.Gemini
                 else
                     response = await ProcessGetRequest(ctx).ConfigureAwait(false);
 
-                await ctx.Stream.WriteAsync(response);
+                if (!Program.Config.SlowMode || response.MimeType != "text/gemini")
+                    await ctx.Stream.WriteAsync(response);
+                else
+                {
+                    var lines = Encoding.UTF8.GetString(response.Bytes).Split('\n');;
+
+                    for(int i = 0; i < lines.Length; i++)
+                    {
+                        var line = lines[i] + '\n';
+                        if(i == 0) 
+                        {
+                            ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
+                            ctx.Stream.Flush();
+                            continue;
+                        }
+                        else if (line.StartsWith("#") || line.StartsWith("=>"))
+                        {
+                            var bytes = Encoding.UTF8.GetBytes(line);
+                            foreach(var b in bytes)
+                            {
+                                ctx.Stream.WriteByte(b);
+                                ctx.Stream.Flush();
+                                await Task.Delay(16);
+                            }
+                            ctx.Stream.Write(Encoding.UTF8.GetBytes("\n"));
+                            ctx.Stream.Flush();
+                        }
+                        else if(line.Length > 100)
+                        {
+                            var words = line.Split(' ');
+                            foreach(var word in words)
+                            {
+                                ctx.Stream.Write(Encoding.UTF8.GetBytes(word + ' '));
+                                ctx.Stream.Flush();
+                                await Task.Delay(8);
+                            }
+                        }
+                        else
+                        {
+                            ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
+                            ctx.Stream.Flush();
+                        }
+                        await Task.Delay(16);
+                    }
+                }
             }
             catch (Exception e)
             {
