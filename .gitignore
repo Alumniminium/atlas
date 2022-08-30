@@ -1,3 +1,11 @@
+# custom
+
+capsules/
+*.pfx
+*.cert
+*.key
+*.crt
+
 # ---> VisualStudioCode
 .vscode/*
 !.vscode/settings.json

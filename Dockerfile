@@ -15,6 +15,6 @@ COPY --from=build /app/published-app /app
 COPY mimetypes.tsv /app/
 COPY gencert.sh /app/
 COPY config.json /etc/atlas/
-COPY capsules/ec.her.st /srv/gemini/ec.her.st
+COPY /srv/gemini/ec.her.st /srv/gemini/ec.her.st
 
 ENTRYPOINT [ "dotnet", "/app/atlas.dll" ]
