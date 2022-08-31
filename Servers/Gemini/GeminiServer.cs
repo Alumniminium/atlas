@@ -79,21 +79,21 @@ namespace atlas.Servers.Gemini
                     await ctx.Stream.WriteAsync(response);
                 else
                 {
-                    var lines = Encoding.UTF8.GetString(response.Bytes).Split('\n');;
+                    var lines = Encoding.UTF8.GetString(response.Bytes).Split('\n'); ;
 
-                    for(int i = 0; i < lines.Length; i++)
+                    for (int i = 0; i < lines.Length; i++)
                     {
                         var line = lines[i] + '\n';
-                        if(i == 0) 
+                        if (i == 0)
                         {
                             ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
                             ctx.Stream.Flush();
                             continue;
                         }
-                        else if (line.StartsWith("#") || line.StartsWith("=>"))
+                        else if (line.StartsWith("#"))
                         {
                             var bytes = Encoding.UTF8.GetBytes(line);
-                            foreach(var b in bytes)
+                            foreach (var b in bytes)
                             {
                                 ctx.Stream.WriteByte(b);
                                 ctx.Stream.Flush();
@@ -102,22 +102,22 @@ namespace atlas.Servers.Gemini
                             ctx.Stream.Write(Encoding.UTF8.GetBytes("\n"));
                             ctx.Stream.Flush();
                         }
-                        else if(line.Length > 100)
+                        else if (line.Length > 100 && !line.StartsWith("=>"))
                         {
                             var words = line.Split(' ');
-                            foreach(var word in words)
+                            foreach (var word in words)
                             {
                                 ctx.Stream.Write(Encoding.UTF8.GetBytes(word + ' '));
                                 ctx.Stream.Flush();
-                                await Task.Delay(8);
+                                await Task.Delay(16);
                             }
                         }
                         else
                         {
+                            await Task.Delay(33);
                             ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
                             ctx.Stream.Flush();
                         }
-                        await Task.Delay(16);
                     }
                 }
             }
