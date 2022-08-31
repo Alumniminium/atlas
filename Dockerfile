@@ -13,7 +13,6 @@ VOLUME ["/etc/atlas"]
 
 COPY --from=build /app/published-app /app
 COPY mimetypes.tsv /app/
-COPY gencert.sh /app/
 COPY config.json /etc/atlas/
 
 ENTRYPOINT [ "dotnet", "/app/atlas.dll" ]

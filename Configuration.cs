@@ -15,7 +15,7 @@ namespace atlas
             var Config = new Configuration()
             {
                 GeminiPort = 1965,
-                SpartanPort = Debugger.IsAttached ? 3000 : 300,
+                SpartanPort = (ushort)(Debugger.IsAttached ? 3000 : 300),
                 Capsules = new()
                 {
                     [Environment.MachineName] = new Capsule()
