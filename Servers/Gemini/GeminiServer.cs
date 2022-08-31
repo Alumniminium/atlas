@@ -18,15 +18,16 @@ namespace atlas.Servers.Gemini
                 EnabledSslProtocols = SslProtocols.Tls13,
                 EncryptionPolicy = EncryptionPolicy.RequireEncryption,
                 ClientCertificateRequired = true,
+                CertificateChainPolicy = new X509ChainPolicy {
+                    VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority
+                }
             };
-            TlsOptions.ServerCertificateSelectionCallback += (_, host) =>
+            TlsOptions.ServerCertificateSelectionCallback = (_, host) =>
             {
                 if (Program.Config.Capsules.TryGetValue(host, out var capsule))
                     return X509Certificate.CreateFromCertFile(capsule.AbsoluteTlsCertPath);
                 return null;
             };
-            TlsOptions.RemoteCertificateValidationCallback += (_, _, _, _) => true;
-
 
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Config.GeminiPort));
@@ -133,14 +134,32 @@ namespace atlas.Servers.Gemini
             try
             {
                 var tlsStream = (SslStream)ctx.Stream;
+                ctx.Cert = new ClientCert();
+
+                TlsOptions.RemoteCertificateValidationCallback = (_, shittyCert, chain, error) => 
+                {
+                    ctx.Cert.SelfSignedCert = chain.ChainStatus.Any(x=>x.Status == X509ChainStatusFlags.UntrustedRoot);
+                    
+                    if(error == SslPolicyErrors.None)
+                    {
+                        var cert = new X509Certificate2(shittyCert);
+                        if(DateTime.Now < cert.NotBefore)
+                            return false;
+                        if(DateTime.Now > cert.NotAfter)
+                            return false;
+                        
+                        return true;
+                    }
+                    return false;
+                };
+
                 await tlsStream.AuthenticateAsServerAsync(TlsOptions).ConfigureAwait(false);
+                ctx.Cert.SetCert(tlsStream.RemoteCertificate);
+                
                 Program.Config.Capsules.TryGetValue(tlsStream.TargetHostName, out ctx.Capsule);
 
-                ctx.CertAlgo = tlsStream.CipherAlgorithm;
-                ctx.CertKx = tlsStream.KeyExchangeAlgorithm;
-
-                if (ctx.ClientCert != null)
-                    Console.WriteLine($"Client Cert: {ctx.ClientIdentity}, Hash: {ctx.ClientIdentityHash} ");
+                if (ctx.Cert != null)
+                    Console.WriteLine($"Client Cert: {ctx.Cert.Subject}, Hash: {ctx.Cert.Thumbprint} ");
             }
             catch (Exception e)
             {

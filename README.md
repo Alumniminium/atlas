@@ -8,7 +8,9 @@
 * x86, x64 and ARM
 
 ## Features
+* server side animations on supported clients (eg. Lagrange)
 * gemini:// with titan:// file uploads
+* automatic certificate generation if none specified
 * spartan:// file uploads and downloads
 * CGI interface compatible with [jetforce](https://github.com/michael-lazar/jetforce) 
 * CGI streaming (for things like gemini://chat.mozz.us/)
@@ -48,7 +50,7 @@
     },
     "evilcorp.net": {
       "AbsoluteRootPath": "/srv/gemini/evilcorp.net/",
-      "AbsoluteTlsCertPath": "/srv/gemini/evilcorp.net/evilcorp.net.pfx",
+      "AbsoluteTlsCertPath": "",// will be automatically created and placed at AbsoluteRootPath/FQDN.pfx
       "FQDN": "evilcorp.net",
       "Index": "index.gmi",
       "MaxUploadSize": 4194304, // global max upload size
@@ -95,14 +97,14 @@ using System.Net;
 using Internal;
 using System.Threading;
 
-    var query = Environment.GetEnvironmentVariable("QUERY_STRING");
-    var SERVER_NAME = Environment.GetEnvironmentVariable("SERVER_NAME");
-    var SERVER_PROTOCOL = Environment.GetEnvironmentVariable("SERVER_PROTOCOL");
+var query = Environment.GetEnvironmentVariable("QUERY_STRING");
+var SERVER_NAME = Environment.GetEnvironmentVariable("SERVER_NAME");
+var SERVER_PROTOCOL = Environment.GetEnvironmentVariable("SERVER_PROTOCOL");
 
-    var inputCode = SERVER_PROTOCOL == "gemini" ? 10 : 1;
-    var successCode = SERVER_PROTOCOL == "gemini" ? 20 : 2;
-    var redirectCode = SERVER_PROTOCOL == "gemini" ? 30 : 3;
-    var failCode = SERVER_PROTOCOL == "gemini" ? 40 : 4;
+var inputCode = SERVER_PROTOCOL == "gemini" ? 10 : 1;
+var successCode = SERVER_PROTOCOL == "gemini" ? 20 : 2;
+var redirectCode = SERVER_PROTOCOL == "gemini" ? 30 : 3;
+var failCode = SERVER_PROTOCOL == "gemini" ? 40 : 4;
 
 try
 {

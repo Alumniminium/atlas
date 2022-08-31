@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace atlas
@@ -14,12 +15,12 @@ namespace atlas
             var Config = new Configuration()
             {
                 GeminiPort = 1965,
+                SpartanPort = Debugger.IsAttached ? 3000 : 300,
                 Capsules = new()
                 {
                     [Environment.MachineName] = new Capsule()
                     {
                         FQDN = Environment.MachineName,
-                        AbsoluteTlsCertPath = $"/srv/gemini/{Environment.MachineName}/{Environment.MachineName}.pfx",
                         AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/",
                         MaxUploadSize = 1024 * 1024 * 4,
                         Index = "index.gmi",
@@ -62,7 +63,7 @@ namespace atlas
             var json = JsonSerializer.Serialize(Config, new JsonSerializerOptions()
             {
                 WriteIndented = true,
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Always,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault,
                 IncludeFields = true,
                 DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
             });

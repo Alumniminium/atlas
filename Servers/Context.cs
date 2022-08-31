@@ -3,7 +3,7 @@ using atlas.Servers.Gemini;
 
 namespace atlas.Servers
 {
-    public abstract class AtlasCtx
+    public abstract class Context
     {
         public bool IsGemini => this is GeminiCtx;
         public abstract int MaxHeaderSize {get;set;}

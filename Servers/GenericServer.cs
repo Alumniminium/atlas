@@ -8,7 +8,7 @@ namespace atlas.Servers
     {
         public Socket Socket { get; set; }
 
-        public static async ValueTask ReceiveRequest(AtlasCtx ctx)
+        public static async ValueTask ReceiveRequest(Context ctx)
         {
             Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> Receiving Request...");
             var reqBuffer = new byte[ctx.MaxHeaderSize + 2]; // +2 for \r\n
@@ -28,7 +28,7 @@ namespace atlas.Servers
                 break;
             }
         }
-        public static async ValueTask<Response> ProcessGetRequest(AtlasCtx ctx)
+        public static async ValueTask<Response> ProcessGetRequest(Context ctx)
         {
             if (ctx.Request.Contains(".."))
                 return Response.BadRequest("invalid request", !ctx.IsGemini);
@@ -59,7 +59,7 @@ namespace atlas.Servers
 
                 var gctx = (GeminiCtx)ctx;
 
-                if (gctx.ClientCert == null)
+                if (gctx.Cert == null)
                 {
                     Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Location '{location.AbsoluteRootPath}' -> requires a certificate but none was sent");
                     return Response.CertRequired();
@@ -105,6 +105,8 @@ namespace atlas.Servers
             }
 
             ctx.Request = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
+            if(ctx.Request == ctx.Capsule.AbsoluteTlsCertPath)
+                return Response.NotFound("nice try");
             
             if (!File.Exists(ctx.Request))
             {
@@ -120,7 +122,7 @@ namespace atlas.Servers
             return Response.Ok(data, mimeType, !ctx.IsGemini);
         }
 
-        public static async ValueTask<Response> UploadFile(AtlasCtx ctx, string path, Uri pathUri, string mimeType, int size)
+        public static async ValueTask<Response> UploadFile(Context ctx, string path, Uri pathUri, string mimeType, int size)
         {
             var location = ctx.Capsule.GetLocation(pathUri);
 
@@ -148,7 +150,7 @@ namespace atlas.Servers
             return Response.Redirect($"{Path.GetDirectoryName(pathUri.AbsolutePath)}/", !ctx.IsGemini);
         }
 
-        private static async Task<byte[]> ReceivePayload(AtlasCtx ctx, int size)
+        private static async Task<byte[]> ReceivePayload(Context ctx, int size)
         {
             Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> receiving {size / 1024f:0.00}kb payload");
             var data = new byte[size];
@@ -161,7 +163,7 @@ namespace atlas.Servers
             return data;
         }
 
-        public static string CreateDirectoryListing(AtlasCtx ctx, Location loc)
+        public static string CreateDirectoryListing(Context ctx, Location loc)
         {
             var sb = new StringBuilder();
             sb.AppendLine("### LAST  MODIFIED   |  SIZE  | NAME");
@@ -175,7 +177,7 @@ namespace atlas.Servers
             return sb.ToString();
         }
 
-        public static void CloseConnection(AtlasCtx ctx)
+        public static void CloseConnection(Context ctx)
         {
             Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> complete");
             ctx.Stream.Flush();

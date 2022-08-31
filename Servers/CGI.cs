@@ -7,7 +7,7 @@ namespace atlas.Servers
 {
     public static class CGI
     {
-        public static IEnumerable<string> ExecuteScript(AtlasCtx ctx, string scriptName, string path)
+        public static IEnumerable<string> ExecuteScript(Context ctx, string scriptName, string path)
         {
             var info = new ProcessStartInfo();
 
@@ -32,13 +32,14 @@ namespace atlas.Servers
             {
                 info.EnvironmentVariables.Add("GEMINI_URL", ctx.Request.Replace("\r\n", ""));
                 info.EnvironmentVariables.Add("TLS_VERSION", "1.3");
-                info.EnvironmentVariables.Add("TLS_CIPHER", gCtx.CertAlgo.ToString());
-                info.EnvironmentVariables.Add("TLS_KEY_EXCHANGE", gCtx.CertKx.ToString());
-                info.EnvironmentVariables.Add("REMOTE_USER", $"{gCtx.ClientIdentity}");
-                info.EnvironmentVariables.Add("TLS_CLIENT_HASH", gCtx.ClientIdentityHash);
-                info.EnvironmentVariables.Add("TLS_CLIENT_NOT_BEFORE", gCtx.ClientCert.GetEffectiveDateString());
-                info.EnvironmentVariables.Add("TLS_CLIENT_NOT_AFTER", gCtx.ClientCert.GetExpirationDateString());
-                info.EnvironmentVariables.Add("TLS_CLIENT_SERIAL_NUMBER", gCtx.ClientCert.GetSerialNumberString());
+                info.EnvironmentVariables.Add("REMOTE_USER", $"{gCtx.Cert.Subject}");
+                info.EnvironmentVariables.Add("TLS_CLIENT_VALID", $"{gCtx.Cert.Valid}");
+                info.EnvironmentVariables.Add("TLS_CLIENT_TRUSTED", $"{gCtx.Cert.Trusted}");
+                info.EnvironmentVariables.Add("TLS_CLIENT_SUBJECT", $"{gCtx.Cert.Subject}");
+                info.EnvironmentVariables.Add("TLS_CLIENT_HASH", gCtx.Cert.Thumbprint);
+                info.EnvironmentVariables.Add("TLS_CLIENT_NOT_BEFORE", gCtx.Cert.Certificate.NotBefore.ToString());
+                info.EnvironmentVariables.Add("TLS_CLIENT_NOT_AFTER", gCtx.Cert.Certificate.NotAfter.ToString());
+                info.EnvironmentVariables.Add("TLS_CLIENT_SERIAL_NUMBER", gCtx.Cert.Certificate.GetSerialNumberString());
             }
 
             info.WorkingDirectory = path;
@@ -51,7 +52,7 @@ namespace atlas.Servers
             return ExecuteScript(info, ctx);
         }
 
-        public static IEnumerable<string> ExecuteScript(ProcessStartInfo info, AtlasCtx ctx)
+        public static IEnumerable<string> ExecuteScript(ProcessStartInfo info, Context ctx)
         {
             var bc = new BlockingCollection<string>();
             var process = new Process
