@@ -3,36 +3,36 @@
   "GeminiPort": 1965,
   "SpartanPort": 300,
   "Capsules": {
-    "ec.her.st": {
-      "AbsoluteTlsCertPath": "/srv/gemini/ec.her.st/ec.her.st.pfx",
-      "AbsoluteRootPath": "/srv/gemini/ec.her.st/",
-      "FQDN": "ec.her.st",
+    "her.st": {
+      "AbsoluteTlsCertPath": "/srv/gemini/her.st/her.st.pfx",
+      "AbsoluteRootPath": "/srv/gemini/her.st/",
+      "FQDN": "her.st",
       "MaxUploadSize": 4194304,
       "Index": "index.gmi",
       "Locations": [
         {
           "Index": "index.gmi",
-          "AbsoluteRootPath": "/srv/gemini/ec.her.st/"
+          "AbsoluteRootPath": "/srv/gemini/her.st/"
         },
         {
           "Index": "index.gmi",
           "DirectoryListing": true,
-          "AbsoluteRootPath": "/srv/gemini/ec.her.st/pages/"
+          "AbsoluteRootPath": "/srv/gemini/her.st/pages/"
         },
         {
           "Index": "index.gmi",
           "DirectoryListing": true,
-          "AbsoluteRootPath": "/srv/gemini/ec.her.st/blog/"
+          "AbsoluteRootPath": "/srv/gemini/her.st/blog/"
         },
         {
           "CGI": true,
           "Index": "script.csx",
-          "AbsoluteRootPath": "/srv/gemini/ec.her.st/cgi/"
+          "AbsoluteRootPath": "/srv/gemini/her.st/cgi/"
         },
         {
           "Index": "index.gmi",
           "DirectoryListing": true,
-          "AbsoluteRootPath": "/srv/gemini/ec.her.st/files/",
+          "AbsoluteRootPath": "/srv/gemini/her.st/files/",
           "AllowFileUploads": true,
           "AllowedMimeTypes": {
             "text/*": {

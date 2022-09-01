@@ -40,7 +40,7 @@ namespace atlas.Servers
         {
             if (spartan)
                 return new($"{(int)SpartanStatusCode.Redirect} {target}\r\n");
-            return new($"{(int)GeminiStatusCode.RedirectTemp} {target}\r\n");
+            return new($"{(int)GeminiStatusCode.RedirectPerm} {target}\r\n");
         }
 
         public static Response ProxyDenied() => new($"{(int)GeminiStatusCode.ProxyRequestRefused}\r\n");

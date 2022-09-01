@@ -33,7 +33,7 @@ namespace atlas
                 Thread.Sleep(int.MaxValue);
         }
 
-        private static async void LoadConfig()
+        private static void LoadConfig()
         {
             var configPath = "/etc/atlas/config.json";
             if (File.Exists(configPath))
