@@ -147,7 +147,7 @@ namespace atlas.Servers
 
             var data = await ReceivePayload(ctx, size).ConfigureAwait(false);
             File.WriteAllBytes(path, data);
-            return Response.Redirect($"{Path.GetDirectoryName(pathUri.AbsolutePath)}/", !ctx.IsGemini);
+            return Response.Redirect($"{ctx.Capsule.FQDN}{Path.GetDirectoryName(pathUri.AbsolutePath)}/", !ctx.IsGemini);
         }
 
         private static async Task<byte[]> ReceivePayload(Context ctx, int size)
