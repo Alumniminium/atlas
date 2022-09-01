@@ -140,8 +140,11 @@ namespace atlas.Servers.Gemini
                 TlsOptions.RemoteCertificateValidationCallback = (_, shittyCert, chain, error) =>
                 {
                     if(shittyCert == null)
+                    {
+                        Console.WriteLine("No certificate");
                         return true;
-                    
+                    }
+                    Console.WriteLine("Chain: " +string.Join(' ', chain.ChainStatus.Select(x => x.Status)));
                     ctx.Cert.SelfSignedCert = chain.ChainStatus.Any(x => x.Status == X509ChainStatusFlags.UntrustedRoot);
 
                     var cert = new X509Certificate2(shittyCert);
