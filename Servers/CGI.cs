@@ -7,7 +7,7 @@ namespace atlas.Servers
 {
     public static class CGI
     {
-        public static IEnumerable<string> ExecuteScript(Context ctx, string scriptName, string path)
+        public static IEnumerable<string> ExecuteScript(Context ctx, string scriptName, string path, string PATH_INFO)
         {
             var info = new ProcessStartInfo();
 
@@ -21,7 +21,7 @@ namespace atlas.Servers
             info.EnvironmentVariables.Add("SERVER_SOFTWARE", $"atlas/{Program.Version}");
             info.EnvironmentVariables.Add("SPARTAN_URL", ctx.Request.Replace("\r\n", ""));
             info.EnvironmentVariables.Add("SCRIPT_NAME", scriptName);
-            info.EnvironmentVariables.Add("PATH_INFO", ctx.Uri.AbsolutePath);
+            info.EnvironmentVariables.Add("PATH_INFO", PATH_INFO);
             info.EnvironmentVariables.Add("QUERY_STRING", ctx.Uri.Query);
             info.EnvironmentVariables.Add("SERVER_NAME", ctx.Capsule.FQDN);
             info.EnvironmentVariables.Add("REMOTE_HOST", ctx.Socket.RemoteEndPoint.ToString());
@@ -45,7 +45,7 @@ namespace atlas.Servers
             info.WorkingDirectory = path;
             info.UseShellExecute = false;
             info.FileName = $"sh";
-            info.Arguments = $"-c {path}{scriptName}";
+            info.Arguments = $"-c {Path.Combine(path,Path.GetFileName(scriptName))}";
             info.RedirectStandardOutput = true;
             info.RedirectStandardError = true;
 
@@ -78,11 +78,16 @@ namespace atlas.Servers
 
                 yield return line;
             }
+
+            var errors = process.StandardError.ReadToEnd();
             if (process.ExitCode != 0)
+            {
                 if (ctx.IsGemini)
-                    yield return $"{GeminiStatusCode.CGIError}\r\n";
+                    yield return $"{(int)GeminiStatusCode.CGIError} {errors}\r\n";
                 else
-                    yield return $"{SpartanStatusCode.ServerError}\r\n";
+                    yield return $"{(int)SpartanStatusCode.ServerError} {errors}\r\n";
+            }
+            Console.WriteLine(errors);
 
             process.Close();
             process.Dispose();

@@ -87,15 +87,23 @@ namespace atlas.Servers
             if (location.CGI)
             {
                 Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Invoking CGI");
+                var cgiParts = ctx.Uri.AbsolutePath.Replace("/cgi/","").Split('/');
+                var file = cgiParts[0];
+                var PATH_INFO = cgiParts.Length > 1 ? string.Join('/',cgiParts[1..]) : "/";
+                
                 Console.WriteLine($"--- BEGIN CGI STREAM ---");
                 var counter = 0;
-                foreach (var line in CGI.ExecuteScript(ctx, location.Index, location.AbsoluteRootPath))
+                foreach (var line in CGI.ExecuteScript(ctx, file, location.AbsoluteRootPath, PATH_INFO))
                 {
                     var l = line;
-                    if (counter == 0)
-                        l += "\r\n";
-                    else
-                        l += '\n';
+
+                    if(!l.EndsWith("\r\n"))
+                    {
+                        if (counter == 0)
+                            l += "\r\n";
+                        else
+                            l += '\n';
+                    }
                     ctx.Stream.Write(Encoding.UTF8.GetBytes(l));
                     ctx.Stream.Flush();
                     counter++;

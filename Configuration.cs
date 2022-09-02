@@ -33,13 +33,6 @@ namespace atlas
                                 },
                                 new Location()
                                 {
-                                    Index = "script.sh",
-                                    CGI = true,
-                                    AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/cgi/",
-                                    RequireClientCert = true
-                                },
-                                new Location()
-                                {
                                     AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/files/",
                                     DirectoryListing = true,
                                     AllowFileUploads = true,
@@ -86,6 +79,8 @@ namespace atlas
                 var absolutePath = Path.GetDirectoryName(Path.Combine(AbsoluteRootPath, uri.AbsolutePath[1..])) + "/";
                 if (loc.AbsoluteRootPath == absolutePath)
                     return loc;
+                if(uri.AbsolutePath.StartsWith("/cgi/"))
+                    return Locations.Where(x => x.CGI).First();
             }
             return null;
         }

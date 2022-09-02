@@ -21,13 +21,13 @@ namespace atlas.Servers.Gemini
                 CertificateChainPolicy = new X509ChainPolicy
                 {
                     VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority
+                },
+                ServerCertificateSelectionCallback = (_, host) =>
+                {
+                    if (Program.Config.Capsules.TryGetValue(host, out var capsule))
+                        return X509Certificate.CreateFromCertFile(capsule.AbsoluteTlsCertPath);
+                    return null;
                 }
-            };
-            TlsOptions.ServerCertificateSelectionCallback = (_, host) =>
-            {
-                if (Program.Config.Capsules.TryGetValue(host, out var capsule))
-                    return X509Certificate.CreateFromCertFile(capsule.AbsoluteTlsCertPath);
-                return null;
             };
 
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
