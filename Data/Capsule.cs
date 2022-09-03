@@ -5,8 +5,8 @@ namespace atlas.Data
         public string AbsoluteTlsCertPath { get; set; }  = string.Empty;
         public string AbsoluteRootPath { get; set; } = string.Empty;
         public string FQDN { get; set; } = string.Empty;
-        public int MaxUploadSize { get; set; }
         public string Index { get; set; } = "index.gmi";
+        public int MaxUploadSize { get; set; }
         public List<Location> Locations { get; set; } = new ();
 
         public Location GetLocation(Uri uri)
@@ -17,7 +17,7 @@ namespace atlas.Data
                 if (loc.AbsoluteRootPath == absolutePath)
                     return loc;
                 if(uri.AbsolutePath.StartsWith("/cgi/"))
-                    return Locations.Where(x => x.CGI).First();
+                    return new Location() { AbsoluteRootPath = AbsoluteRootPath + "/cgi/", CGI = true };
             }
             return null;
         }

@@ -29,6 +29,7 @@ namespace atlas.Servers
                 break;
             }
         }
+        
         public static async ValueTask<Response> ProcessGetRequest(Context ctx)
         {
             if (ctx.Request.Contains(".."))
@@ -66,8 +67,8 @@ namespace atlas.Servers
                     return Response.CertRequired();
                 }
             }
-
-            if (string.IsNullOrEmpty(Path.GetFileName(ctx.Request)))
+            var f = Path.GetFileName(ctx.Uri.AbsolutePath);
+            if (string.IsNullOrEmpty(f))
             {
                 Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> No filename for request");
                 if (location.DirectoryListing)
