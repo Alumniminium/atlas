@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 using atlas.Servers.Gemini;
 using atlas.Servers.Spartan;

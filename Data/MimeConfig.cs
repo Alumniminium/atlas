@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.IO;
+
 namespace atlas.Data
 {
     public static class MimeMap

@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+
 namespace atlas.Data
 {
     public class Capsule
