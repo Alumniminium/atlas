@@ -13,6 +13,12 @@ VOLUME ["/etc/atlas"]
 
 COPY --from=build /app/published-app /app
 COPY mimetypes.tsv /app/
+
+# pick your poison
+#COPY config.json /app/
 COPY config.json /etc/atlas/
+
+# only required if you use netcore cgi apps
+RUN apk add icu-libs 
 
 ENTRYPOINT [ "dotnet", "/app/atlas.dll" ]

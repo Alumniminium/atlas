@@ -24,8 +24,8 @@ namespace atlas.Servers
             info.EnvironmentVariables.Add("PATH_INFO", PATH_INFO);
             info.EnvironmentVariables.Add("QUERY_STRING", ctx.Uri.Query);
             info.EnvironmentVariables.Add("SERVER_NAME", ctx.Capsule.FQDN);
-            info.EnvironmentVariables.Add("REMOTE_HOST", ctx.Socket.RemoteEndPoint.ToString());
-            info.EnvironmentVariables.Add("REMOTE_ADDR", ctx.Socket.RemoteEndPoint.ToString().Split(':')[0]);
+            info.EnvironmentVariables.Add("REMOTE_HOST", ctx.IP);
+            info.EnvironmentVariables.Add("REMOTE_ADDR", ctx.IP);
             info.EnvironmentVariables.Add("AUTH_TYPE", $"{(ctx.IsGemini ? "CERTIFICATE" : "NONE")}");
 
             if (ctx is GeminiCtx gCtx)
@@ -45,7 +45,7 @@ namespace atlas.Servers
             info.WorkingDirectory = path;
             info.UseShellExecute = false;
             info.FileName = $"sh";
-            info.Arguments = $"-c {Path.Combine(path,Path.GetFileName(scriptName))}";
+            info.Arguments = $"-c {Path.Combine(path, Path.GetFileName(scriptName))}";
             info.RedirectStandardOutput = true;
             info.RedirectStandardError = true;
 

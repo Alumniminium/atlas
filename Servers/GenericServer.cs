@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using System.Text;
+using atlas.Data;
 using atlas.Servers.Gemini;
 
 namespace atlas.Servers
@@ -123,7 +124,7 @@ namespace atlas.Servers
             }
 
             var ext = Path.GetExtension(ctx.Request);
-            var mimeType = Util.GetMimeType(ext);
+            var mimeType = MimeMap.GetMimeType(ext);
             var data = await File.ReadAllBytesAsync(ctx.Request).ConfigureAwait(false);
 
             Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {data.Length / 1024f:0.00}kb of {mimeType}");

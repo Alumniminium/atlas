@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using atlas.Data;
 
 namespace atlas.Servers.Spartan
 {
@@ -76,7 +77,7 @@ namespace atlas.Servers.Spartan
             var pathUri = new Uri(parts[1]);
             var size = int.Parse(parts[2]);
             var absoluteDestinationPath = Path.Combine(ctx.Capsule.AbsoluteRootPath, pathUri.AbsolutePath[1..]);
-            var mimeType = Util.GetMimeType(Path.GetExtension(pathUri.AbsolutePath));
+            var mimeType = MimeMap.GetMimeType(Path.GetExtension(pathUri.AbsolutePath));
 
             return await UploadFile(ctx, absoluteDestinationPath, pathUri, mimeType, size).ConfigureAwait(false);
         }

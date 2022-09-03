@@ -99,24 +99,24 @@ namespace atlas.Servers.Gemini
                             {
                                 ctx.Stream.WriteByte(b);
                                 ctx.Stream.Flush();
-                                await Task.Delay(16);
+                                await Task.Delay(8);
                             }
                             ctx.Stream.Write(Encoding.UTF8.GetBytes("\n"));
                             ctx.Stream.Flush();
                         }
-                        else if (line.Length > 100 && !line.StartsWith("=>"))
+                        else if (line.Length > 200 && !line.StartsWith("=>"))
                         {
                             var words = line.Split(' ');
                             foreach (var word in words)
                             {
                                 ctx.Stream.Write(Encoding.UTF8.GetBytes(word + ' '));
                                 ctx.Stream.Flush();
-                                await Task.Delay(16);
+                                await Task.Delay(8);
                             }
                         }
                         else
                         {
-                            await Task.Delay(33);
+                            await Task.Delay(16);
                             ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
                             ctx.Stream.Flush();
                         }

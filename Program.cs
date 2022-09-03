@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
+using atlas.Data;
 using atlas.Servers.Gemini;
 using atlas.Servers.Spartan;
 
@@ -8,26 +9,24 @@ namespace atlas
 {
     class Program
     {
-        public static string Version = "0.2a";
-        public static Configuration Config { get; set; }
-        public static Dictionary<string, string> ExtensionToMimeType = new();
-        public static Dictionary<string, string> MimeTypeToExtension = new();
-        public static GeminiServer geminiServer;
-        public static SpartanServer spartanServer;
+        public static string Version = "0.2b";
+        public static Configuration Config;
+        public static GeminiServer GeminiServer;
+        public static SpartanServer SpartanServer;
 
         static void Main()
         {
             Console.WriteLine("Loading MimeMap...");
-            LoadMimeMap();
+            MimeMap.LoadMimeMap();
             Console.WriteLine("Loading Config...");
             LoadConfig();
             Console.WriteLine("Starting Gemini...");
-            geminiServer = new();
-            geminiServer.Start();
+            GeminiServer = new();
+            GeminiServer.Start();
             Console.WriteLine("Starting Spartan...");
-            spartanServer = new();
-            spartanServer.Start();
-            Console.WriteLine("Atlas Ready!");
+            SpartanServer = new();
+            SpartanServer.Start();
+            Console.WriteLine($"Atlas/{Version} Ready!");
 
             while (true)
                 Thread.Sleep(int.MaxValue);
@@ -43,8 +42,8 @@ namespace atlas
             }
             else if (File.Exists("config.json"))
             {
-                configPath = "config.json";
-                Console.WriteLine($"Loading {Environment.CurrentDirectory}/config.json ...");
+                configPath = $"{Environment.CurrentDirectory}/config.json";
+                Console.WriteLine($"Loading {configPath} ...");
                 Config = JsonSerializer.Deserialize<Configuration>(File.ReadAllText("config.json"));
             }
 
@@ -65,32 +64,25 @@ namespace atlas
             {
                 foreach (var vhost in Config.Capsules)
                 {
-                    if (string.IsNullOrWhiteSpace(vhost.Value.AbsoluteTlsCertPath) || !File.Exists(vhost.Value.AbsoluteTlsCertPath))
-                    {
-                        var ecdsa = ECDsa.Create();
-                        var req = new CertificateRequest("cn=" + vhost.Value.FQDN, ecdsa, HashAlgorithmName.SHA512);
-                        var cert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(5));
+                    if (!string.IsNullOrWhiteSpace(vhost.Value.AbsoluteTlsCertPath) && File.Exists(vhost.Value.AbsoluteTlsCertPath))
+                        continue;
 
-                        vhost.Value.AbsoluteTlsCertPath = Path.Combine(vhost.Value.AbsoluteRootPath, vhost.Value.FQDN + ".pfx");
-                        Console.WriteLine($"Certificate for {vhost.Value.FQDN}not found. Creating new one at {vhost.Value.AbsoluteTlsCertPath}");
-                        File.WriteAllBytes(vhost.Value.AbsoluteTlsCertPath, cert.Export(X509ContentType.Pfx));
+                    var ecdsa = ECDsa.Create();
+                    var req = new CertificateRequest("cn=" + vhost.Value.FQDN, ecdsa, HashAlgorithmName.SHA512);
+                    var cert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(5));
 
-                        Console.WriteLine($"Updating {configPath} with certificate...");
-                        var json = JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true, DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault });
-                        File.WriteAllText(configPath, json);
-                        Console.WriteLine($"Updated {configPath}");
-                    }
+                    vhost.Value.AbsoluteTlsCertPath = Path.Combine(vhost.Value.AbsoluteRootPath, vhost.Value.FQDN + ".pfx");
+
+                    Console.WriteLine($"Certificate for {vhost.Value.FQDN}not found. Creating new one at {vhost.Value.AbsoluteTlsCertPath}");
+
+                    File.WriteAllBytes(vhost.Value.AbsoluteTlsCertPath, cert.Export(X509ContentType.Pfx));
+
+                    Console.WriteLine($"Updating {configPath} with certificate...");
+
+                    var json = JsonSerializer.Serialize(Config, new JsonSerializerOptions { WriteIndented = true, DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault });
+                    File.WriteAllText(configPath, json);
+                    Console.WriteLine($"Updated {configPath}");
                 }
-            }
-        }
-
-        private static void LoadMimeMap()
-        {
-            var lines = File.ReadLines("mimetypes.tsv");
-            foreach (var line in lines)
-            {
-                var parts = line.Split('\t');
-                ExtensionToMimeType.Add(parts[0], parts[1]);
             }
         }
     }
