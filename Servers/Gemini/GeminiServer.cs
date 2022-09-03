@@ -20,7 +20,7 @@ namespace atlas.Servers.Gemini
         {
             TlsOptions = new SslServerAuthenticationOptions
             {
-                EnabledSslProtocols = SslProtocols.Tls13,
+                EnabledSslProtocols = SslProtocols.Tls13 | SslProtocols.Tls12,
                 EncryptionPolicy = EncryptionPolicy.RequireEncryption,
                 ClientCertificateRequired = true,
                 CertificateChainPolicy = new X509ChainPolicy
