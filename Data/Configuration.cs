@@ -12,7 +12,7 @@ namespace atlas.Data
     {
         public ushort SpartanPort { get; set; } = 300;
         public ushort GeminiPort { get; set; } = 1965;
-        public Dictionary<string, Capsule> Capsules { get; set; } = new ();
+        public Dictionary<string, Capsule> Capsules { get; set; } = new();
         public bool SlowMode { get; set; }
 
         public static Configuration Load()
@@ -51,8 +51,10 @@ namespace atlas.Data
                     if (!string.IsNullOrWhiteSpace(vhost.Value.AbsoluteTlsCertPath) && File.Exists(vhost.Value.AbsoluteTlsCertPath))
                         continue;
 
-                    var ecdsa = ECDsa.Create();
-                    var req = new CertificateRequest("cn=" + vhost.Value.FQDN, ecdsa, HashAlgorithmName.SHA512);
+                    var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+                    var req = new CertificateRequest("cn=" + vhost.Value.FQDN, ecdsa, HashAlgorithmName.SHA256);
+                    req.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: false));
+                    req.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, false));
                     var cert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(5));
 
                     vhost.Value.AbsoluteTlsCertPath = Path.Combine(vhost.Value.AbsoluteRootPath, vhost.Value.FQDN + ".pfx");

@@ -15,7 +15,7 @@ namespace atlas.Servers.Spartan
             Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Config.SpartanPort));
             Socket.Listen();
         }
-        
+
         public async void Start()
         {
             while (true)

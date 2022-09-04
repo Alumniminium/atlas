@@ -6,14 +6,14 @@ using atlas.Servers.Spartan;
 
 namespace atlas
 {
-    class Program
+    internal class Program
     {
         public static string Version = "0.2b";
         public static Configuration Config;
         public static GeminiServer GeminiServer;
         public static SpartanServer SpartanServer;
 
-        static void Main()
+        private static void Main()
         {
             Console.WriteLine("Loading MimeMap...");
             MimeMap.LoadMimeMap();

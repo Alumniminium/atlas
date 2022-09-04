@@ -33,7 +33,7 @@ namespace atlas.Servers
                 break;
             }
         }
-        
+
         public static async ValueTask<Response> ProcessGetRequest(Context ctx)
         {
             if (ctx.Request.Contains(".."))
@@ -93,17 +93,17 @@ namespace atlas.Servers
             if (location.CGI)
             {
                 Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Invoking CGI");
-                var cgiParts = ctx.Uri.AbsolutePath.Replace("/cgi/","").Split('/');
+                var cgiParts = ctx.Uri.AbsolutePath.Replace("/cgi/", "").Split('/');
                 var file = cgiParts[0];
-                var PATH_INFO = cgiParts.Length > 1 ? string.Join('/',cgiParts[1..]) : "/";
-                
+                var PATH_INFO = cgiParts.Length > 1 ? string.Join('/', cgiParts[1..]) : "/";
+
                 Console.WriteLine($"--- BEGIN CGI STREAM ---");
                 var counter = 0;
                 foreach (var line in CGI.ExecuteScript(ctx, file, location.AbsoluteRootPath, PATH_INFO))
                 {
                     var l = line;
 
-                    if(!l.EndsWith("\r\n"))
+                    if (!l.EndsWith("\r\n"))
                     {
                         if (counter == 0)
                             l += "\r\n";
@@ -119,9 +119,9 @@ namespace atlas.Servers
             }
 
             ctx.Request = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
-            if(ctx.Request == ctx.Capsule.AbsoluteTlsCertPath)
+            if (ctx.Request == ctx.Capsule.AbsoluteTlsCertPath)
                 return Response.NotFound("nice try");
-            
+
             if (!File.Exists(ctx.Request))
             {
                 Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Not Found");

@@ -20,12 +20,12 @@ namespace atlas.Servers.Gemini
         {
             TlsOptions = new SslServerAuthenticationOptions
             {
-                EnabledSslProtocols = SslProtocols.Tls13 | SslProtocols.Tls12,
+                EnabledSslProtocols = SslProtocols.Tls13,
                 EncryptionPolicy = EncryptionPolicy.RequireEncryption,
                 ClientCertificateRequired = true,
                 CertificateChainPolicy = new X509ChainPolicy
                 {
-                    VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority
+                    VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority,
                 },
                 ServerCertificateSelectionCallback = (_, host) =>
                 {
@@ -144,12 +144,12 @@ namespace atlas.Servers.Gemini
 
                 TlsOptions.RemoteCertificateValidationCallback = (_, shittyCert, chain, error) =>
                 {
-                    if(shittyCert == null)
+                    if (shittyCert == null)
                     {
                         Console.WriteLine("No certificate");
                         return true;
                     }
-                    Console.WriteLine("Chain: " +string.Join(' ', chain.ChainStatus.Select(x => x.Status)));
+                    Console.WriteLine("Chain: " + string.Join(' ', chain.ChainStatus.Select(x => x.Status)));
                     ctx.Cert.SelfSignedCert = chain.ChainStatus.Any(x => x.Status == X509ChainStatusFlags.UntrustedRoot);
 
                     var cert = new X509Certificate2(shittyCert);

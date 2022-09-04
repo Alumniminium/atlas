@@ -22,7 +22,7 @@ namespace atlas.Data
             if (!ExtensionToMimeType.TryGetValue(ext, out var mimeType))
                 mimeType = defaultMimeType;
             return mimeType;
-        } 
+        }
         public static string GetExtFromMimeType(string mimeType, string defaultExt = ".txt")
         {
             if (!MimeTypeToExtension.TryGetValue(mimeType, out var ext))

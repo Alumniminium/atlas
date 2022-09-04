@@ -11,8 +11,15 @@ namespace atlas.Servers
 
         public string MimeType { get; set; } = "text/gemini";
 
-        public Response(byte[] bytes) => Bytes = bytes;
-        public Response(string data) => Bytes = Encoding.UTF8.GetBytes(data);
+        public Response(byte[] bytes)
+        {
+            Bytes = bytes;
+        }
+
+        public Response(string data)
+        {
+            Bytes = Encoding.UTF8.GetBytes(data);
+        }
 
         public Response(bool spartan, string mimeType, byte[] buffer)
         {
@@ -44,10 +51,24 @@ namespace atlas.Servers
             return new($"{(int)GeminiStatusCode.RedirectPerm} gemini://{target}\r\n");
         }
 
-        public static Response ProxyDenied() => new($"{(int)GeminiStatusCode.ProxyRequestRefused}\r\n");
-        public static Response Ok(byte[] data, string mimeType = "text/gemini", bool spartan = false) => new(spartan, mimeType, data);
-        public static Response CertRequired() => new($"{(int)GeminiStatusCode.ClientCertRequired}\r\n");
-        public static implicit operator ReadOnlyMemory<byte>(Response r) => r.Bytes.AsMemory();
+        public static Response ProxyDenied()
+        {
+            return new($"{(int)GeminiStatusCode.ProxyRequestRefused}\r\n");
+        }
 
+        public static Response Ok(byte[] data, string mimeType = "text/gemini", bool spartan = false)
+        {
+            return new(spartan, mimeType, data);
+        }
+
+        public static Response CertRequired()
+        {
+            return new($"{(int)GeminiStatusCode.ClientCertRequired}\r\n");
+        }
+
+        public static implicit operator ReadOnlyMemory<byte>(Response r)
+        {
+            return r.Bytes.AsMemory();
+        }
     }
 }
