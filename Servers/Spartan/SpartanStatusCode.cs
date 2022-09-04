@@ -1,6 +1,6 @@
 namespace atlas.Servers.Spartan
 {
-    public enum SpartanStatusCode
+    public enum SpartanCode
     {
         Success = 2,
         Redirect = 3,

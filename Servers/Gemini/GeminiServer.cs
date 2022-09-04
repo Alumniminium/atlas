@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -29,20 +28,19 @@ namespace atlas.Servers.Gemini
                 },
                 ServerCertificateSelectionCallback = (_, host) =>
                 {
-                    return Program.Config.Capsules.TryGetValue(host, out var capsule)
+                    return Program.Cfg.Capsules.TryGetValue(host, out var capsule)
                         ? X509Certificate.CreateFromCertFile(capsule.AbsoluteTlsCertPath)
                         : null;
                 }
             };
 
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Config.GeminiPort));
+            Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Cfg.GeminiPort));
             Socket.Listen();
         }
 
         public async void Start()
         {
-            var tasks = new List<Task>();
             while (true)
             {
                 Console.WriteLine("[GEMINI] Waiting for connection...");
@@ -81,56 +79,12 @@ namespace atlas.Servers.Gemini
                     ? await ProcessUploadRequest(ctx).ConfigureAwait(false)
                     : await ProcessGetRequest(ctx).ConfigureAwait(false);
 
-                if (!Program.Config.SlowMode || response.MimeType != "text/gemini")
-                    await ctx.Stream.WriteAsync(response);
+                if (Program.Cfg.SlowMode && response.MimeType == "text/gemini")
+                    await AnimatedResponse(ctx, response);
                 else
-                {
-                    var lines = Encoding.UTF8.GetString(response.Bytes).Split('\n'); ;
-
-                    for (int i = 0; i < lines.Length; i++)
-                    {
-                        var line = lines[i] + '\n';
-                        if (i == 0)
-                        {
-                            ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
-                            ctx.Stream.Flush();
-                            continue;
-                        }
-                        else if (line.StartsWith("#"))
-                        {
-                            var bytes = Encoding.UTF8.GetBytes(line);
-                            foreach (var b in bytes)
-                            {
-                                ctx.Stream.WriteByte(b);
-                                ctx.Stream.Flush();
-                                await Task.Delay(8);
-                            }
-                            ctx.Stream.Write(Encoding.UTF8.GetBytes("\n"));
-                            ctx.Stream.Flush();
-                        }
-                        else if (line.Length > 200 && !line.StartsWith("=>"))
-                        {
-                            var words = line.Split(' ');
-                            foreach (var word in words)
-                            {
-                                ctx.Stream.Write(Encoding.UTF8.GetBytes(word + ' '));
-                                ctx.Stream.Flush();
-                                await Task.Delay(8);
-                            }
-                        }
-                        else
-                        {
-                            await Task.Delay(16);
-                            ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
-                            ctx.Stream.Flush();
-                        }
-                    }
-                }
+                    await ctx.Stream.WriteAsync(response);
             }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
+            catch (Exception e) { Console.WriteLine(e); }
             finally { CloseConnection(ctx); }
         }
 
@@ -156,12 +110,19 @@ namespace atlas.Servers.Gemini
                 };
 
                 await tlsStream.AuthenticateAsServerAsync(TlsOptions).ConfigureAwait(false);
-                Program.Config.Capsules.TryGetValue(tlsStream.TargetHostName, out ctx.Capsule);
-
-                if (tlsStream.RemoteCertificate != null)
+                if (Program.Cfg.Capsules.TryGetValue(tlsStream.TargetHostName, out ctx.Capsule))
                 {
-                    ctx.Cert.SetCert(tlsStream.RemoteCertificate);
-                    Console.WriteLine($"Client Cert: {ctx.Cert.Subject}, Hash: {ctx.Cert.Thumbprint} ");
+                    if (tlsStream.RemoteCertificate != null)
+                    {
+                        ctx.Cert.SetCert(tlsStream.RemoteCertificate);
+                        Console.WriteLine($"Client Cert: {ctx.Cert.Subject}, Hash: {ctx.Cert.Thumbprint} ");
+                    }
+                    return true;
+                }
+                else
+                {
+                    Console.WriteLine($"[FAIL] vhost '{tlsStream.TargetHostName}' not configured.");
+                    return false;
                 }
             }
             catch (Exception e)
@@ -191,9 +152,61 @@ namespace atlas.Servers.Gemini
                 if (kvp[0] == "charset")
                     continue;
             }
-            var size = int.Parse(strSizeBytes);
 
-            return await UploadFile(ctx, path, pathUri, mimeType, size).ConfigureAwait(false);
+            if (int.TryParse(strSizeBytes, out var size))
+                return await UploadFile(ctx, path, pathUri, mimeType, size).ConfigureAwait(false);
+            else
+                return Response.BadRequest("Invalid Size: " + strSizeBytes);
+        }
+        private static async Task AnimatedResponse(GeminiCtx ctx, Response response)
+        {
+            var lines = Encoding.UTF8.GetString(response.Data.ToArray()).Split('\n'); ;
+            var timeCount = 0;
+            var maxTime = Program.Cfg.SlowModeMaxMilliSeconds;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i] + '\n';
+                if (i == 0)
+                {
+                    ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
+                    ctx.Stream.Flush();
+                    continue;
+                }
+                else if (line.StartsWith("#") && timeCount < maxTime)
+                {
+                    var bytes = Encoding.UTF8.GetBytes(line);
+                    foreach (var b in bytes)
+                    {
+                        ctx.Stream.WriteByte(b);
+                        ctx.Stream.Flush();
+                        await Task.Delay(16);
+                        timeCount += 16;
+                    }
+                    ctx.Stream.Write(Encoding.UTF8.GetBytes("\n"));
+                    ctx.Stream.Flush();
+                }
+                else if (line.Length > 200 && !line.StartsWith("=>") && timeCount < maxTime)
+                {
+                    var words = line.Split(' ');
+                    foreach (var word in words)
+                    {
+                        ctx.Stream.Write(Encoding.UTF8.GetBytes(word + ' '));
+                        ctx.Stream.Flush();
+                        await Task.Delay(16);
+                        timeCount += 16;
+                    }
+                }
+                else
+                {
+                    if (timeCount < maxTime)
+                    {
+                        await Task.Delay(16);
+                        timeCount += 16;
+                    }
+                    ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
+                    ctx.Stream.Flush();
+                }
+            }
         }
     }
 }

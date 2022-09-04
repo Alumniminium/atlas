@@ -20,7 +20,7 @@ namespace atlas.Servers
             info.EnvironmentVariables.Add("PATH", pathVar);
             info.EnvironmentVariables.Add("GATEWAY_INTERFACE", "CGI/1.1");
             info.EnvironmentVariables.Add("SERVER_PROTOCOL", $"{(ctx.IsGemini ? "GEMINI" : "SPARTAN")}");
-            info.EnvironmentVariables.Add("SERVER_PORT", $"{(ctx.IsGemini ? Program.Config.GeminiPort : Program.Config.SpartanPort)}");
+            info.EnvironmentVariables.Add("SERVER_PORT", $"{(ctx.IsGemini ? Program.Cfg.GeminiPort : Program.Cfg.SpartanPort)}");
             info.EnvironmentVariables.Add("SERVER_SOFTWARE", $"atlas/{Program.Version}");
             info.EnvironmentVariables.Add("SPARTAN_URL", ctx.Request.Replace("\r\n", ""));
             info.EnvironmentVariables.Add("SCRIPT_NAME", scriptName);
@@ -85,7 +85,7 @@ namespace atlas.Servers
             var errors = process.StandardError.ReadToEnd();
             if (process.ExitCode != 0)
             {
-                yield return ctx.IsGemini ? $"{(int)GeminiStatusCode.CGIError} {errors}\r\n" : $"{(int)SpartanStatusCode.ServerError} {errors}\r\n";
+                yield return ctx.IsGemini ? $"{(int)GeminiCode.CGIError} {errors}\r\n" : $"{(int)SpartanCode.ServerError} {errors}\r\n";
             }
             Console.WriteLine(errors);
 

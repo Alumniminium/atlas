@@ -1,6 +1,6 @@
 namespace atlas.Servers.Gemini
 {
-    public enum GeminiStatusCode
+    public enum GeminiCode
     {
         Input = 10,
         SensitiveInput = 11,

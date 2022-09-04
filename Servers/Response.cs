@@ -7,65 +7,37 @@ namespace atlas.Servers
 {
     public class Response
     {
-        public byte[] Bytes;
-
+        public Memory<byte> Data;
         public string MimeType { get; set; } = "text/gemini";
 
-        public Response(byte[] bytes)
-        {
-            Bytes = bytes;
-        }
-
-        public Response(string data)
-        {
-            Bytes = Encoding.UTF8.GetBytes(data);
-        }
-
-        public Response(bool spartan, string mimeType, byte[] buffer)
+        public Response(Memory<byte> bytes) => Data = bytes;
+        public Response(string data) => Data = Encoding.UTF8.GetBytes(data);
+        public Response(bool spartan, string mimeType, Memory<byte> buffer)
         {
             MimeType = mimeType;
-            var header = Encoding.UTF8.GetBytes($"{(spartan ? (int)SpartanStatusCode.Success : (int)GeminiStatusCode.Success)} {mimeType}; charset=utf-8\r\n");
-            Bytes = new byte[header.Length + buffer.Length];
-            Buffer.BlockCopy(header, 0, Bytes, 0, header.Length);
-            Buffer.BlockCopy(buffer, 0, Bytes, header.Length, buffer.Length);
-        }
-        public static Response NotFound(string message, bool spartan = false)
-        {
-            return spartan
-                ? (new($"{(int)SpartanStatusCode.ServerError} {message}.\r\n"))
-                : (new($"{(int)GeminiStatusCode.NotFound} {message}.\r\n"));
+            var header = Ok(spartan, mimeType);
+            Data = new byte[header.Data.Length + buffer.Length].AsMemory();
+            header.Data.CopyTo(Data);
+            buffer.CopyTo(Data[header.Data.Length..]);
         }
 
-        public static Response BadRequest(string reason, bool spartan = false)
-        {
-            return spartan ? (new($"{(int)SpartanStatusCode.ServerError} {reason}\r\n")) : (new($"{(int)GeminiStatusCode.BadRequest} {reason}\r\n"));
-        }
+        public static Response Ok(Memory<byte> data, string mimeType = "text/gemini", bool spartan = false) => new(spartan, mimeType, data);
+        public static Response Ok(bool spartan = false, string mimeType = "text/gemini") => spartan
+                ? new($"{(int)SpartanCode.Success}\r\n")
+                : new($"{(int)GeminiCode.Success} {mimeType}\r\n");
+        public static Response NotFound(string message, bool spartan = false) => spartan
+                ? (new($"{(int)SpartanCode.ServerError} {message}.\r\n"))
+                : (new($"{(int)GeminiCode.NotFound} {message}.\r\n"));
 
-        public static Response Redirect(string target, bool spartan = false)
-        {
-            return spartan
-                ? (new($"{(int)SpartanStatusCode.Redirect} {target}\r\n"))
-                : (new($"{(int)GeminiStatusCode.RedirectPerm} gemini://{target}\r\n"));
-        }
+        public static Response BadRequest(string reason, bool spartan = false) => spartan
+                ? (new($"{(int)SpartanCode.ServerError} {reason}\r\n"))
+                : (new($"{(int)GeminiCode.BadRequest} {reason}\r\n"));
 
-        public static Response ProxyDenied()
-        {
-            return new($"{(int)GeminiStatusCode.ProxyRequestRefused}\r\n");
-        }
-
-        public static Response Ok(byte[] data, string mimeType = "text/gemini", bool spartan = false)
-        {
-            return new(spartan, mimeType, data);
-        }
-
-        public static Response CertRequired()
-        {
-            return new($"{(int)GeminiStatusCode.ClientCertRequired}\r\n");
-        }
-
-        public static implicit operator ReadOnlyMemory<byte>(Response r)
-        {
-            return r.Bytes.AsMemory();
-        }
+        public static Response Redirect(string target, bool spartan = false) => spartan
+                ? (new($"{(int)SpartanCode.Redirect} {target}\r\n"))
+                : (new($"{(int)GeminiCode.RedirectPerm} gemini://{target}\r\n"));
+        public static Response ProxyDenied() => new($"{(int)GeminiCode.ProxyRequestRefused}\r\n");
+        public static Response CertRequired() => new($"{(int)GeminiCode.ClientCertRequired}\r\n");
+        public static implicit operator ReadOnlyMemory<byte>(Response r) => r.Data;
     }
 }

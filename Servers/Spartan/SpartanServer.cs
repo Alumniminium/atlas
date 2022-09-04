@@ -12,7 +12,7 @@ namespace atlas.Servers.Spartan
         public SpartanServer()
         {
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Config.SpartanPort));
+            Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Cfg.SpartanPort));
             Socket.Listen();
         }
 
@@ -64,7 +64,7 @@ namespace atlas.Servers.Spartan
             var path = parts[1];
             var size = int.Parse(parts[2]);
 
-            if (Program.Config.Capsules.TryGetValue(host, out var capsule))
+            if (Program.Cfg.Capsules.TryGetValue(host, out var capsule))
                 ctx.Capsule = capsule;
             ctx.Request = $"spartan://{host}{path}";
 

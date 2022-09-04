@@ -10,10 +10,11 @@ namespace atlas.Data
 {
     public class Configuration
     {
+        public bool SlowMode { get; set; }
+        public int SlowModeMaxMilliSeconds { get; set; }
         public ushort SpartanPort { get; set; } = 300;
         public ushort GeminiPort { get; set; } = 1965;
         public Dictionary<string, Capsule> Capsules { get; set; } = new();
-        public bool SlowMode { get; set; }
 
         public static Configuration Load()
         {
@@ -55,7 +56,7 @@ namespace atlas.Data
                     var req = new CertificateRequest("cn=" + vhost.Value.FQDN, ecdsa, HashAlgorithmName.SHA256);
                     req.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: false));
                     req.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, false));
-                    var cert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(5));
+                    var cert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1000));
 
                     vhost.Value.AbsoluteTlsCertPath = Path.Combine(vhost.Value.AbsoluteRootPath, vhost.Value.FQDN + ".pfx");
 

@@ -27,8 +27,8 @@ namespace atlas.Servers
                     continue;
 
                 ctx.Request = string.Join(' ', ctx.Request[..^2]);
-                ctx.Request = ctx.Request.Replace($":{Program.Config.GeminiPort}", "");
-                ctx.Request = ctx.Request.Replace($":{Program.Config.SpartanPort}", "");
+                ctx.Request = ctx.Request.Replace($":{Program.Cfg.GeminiPort}", "");
+                ctx.Request = ctx.Request.Replace($":{Program.Cfg.SpartanPort}", "");
                 Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Size: {length} bytes");
                 break;
             }
@@ -42,9 +42,9 @@ namespace atlas.Servers
                 return Response.ProxyDenied();
             if (ctx.Uri.Port != -1)
             {
-                if (ctx.IsGemini && ctx.Uri.Port != Program.Config.GeminiPort)
+                if (ctx.IsGemini && ctx.Uri.Port != Program.Cfg.GeminiPort)
                     return Response.ProxyDenied();
-                if (ctx.Uri.Port != Program.Config.SpartanPort && !ctx.IsGemini)
+                if (ctx.Uri.Port != Program.Cfg.SpartanPort && !ctx.IsGemini)
                     return Response.BadRequest("port invalid", !ctx.IsGemini);
             }
 
@@ -80,7 +80,7 @@ namespace atlas.Servers
                     Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Create DirectoryListing");
                     var gmi = CreateDirectoryListing(ctx, location);
                     Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> DirectoryListing -> {gmi.Length} bytes");
-                    return Response.Ok(Encoding.UTF8.GetBytes(gmi), "text/gemini", !ctx.IsGemini);
+                    return Response.Ok(Encoding.UTF8.GetBytes(gmi).AsMemory(), "text/gemini", !ctx.IsGemini);
                 }
                 else
                 {
@@ -133,7 +133,7 @@ namespace atlas.Servers
             var data = await File.ReadAllBytesAsync(ctx.Request).ConfigureAwait(false);
 
             Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {data.Length / 1024f:0.00}kb of {mimeType}");
-            return Response.Ok(data, mimeType, !ctx.IsGemini);
+            return Response.Ok(data.AsMemory(), mimeType, !ctx.IsGemini);
         }
 
         public static async ValueTask<Response> UploadFile(Context ctx, string path, Uri pathUri, string mimeType, int size)
@@ -160,18 +160,18 @@ namespace atlas.Servers
             }
 
             var data = await ReceivePayload(ctx, size).ConfigureAwait(false);
-            File.WriteAllBytes(path, data);
+            File.WriteAllBytes(path, data.ToArray());
             return Response.Redirect($"{ctx.Capsule.FQDN}{Path.GetDirectoryName(pathUri.AbsolutePath)}/", !ctx.IsGemini);
         }
 
-        private static async Task<byte[]> ReceivePayload(Context ctx, int size)
+        private static async Task<Memory<byte>> ReceivePayload(Context ctx, int size)
         {
             Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> receiving {size / 1024f:0.00}kb payload");
-            var data = new byte[size];
+            var data = new Memory<byte>();//[size];
             var fileLen = 0;
             while (fileLen != size)
             {
-                fileLen += await ctx.Stream.ReadAsync(data.AsMemory(fileLen, size - fileLen)).ConfigureAwait(false);
+                fileLen += await ctx.Stream.ReadAsync(data[fileLen..size]).ConfigureAwait(false);
                 Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> received {fileLen}/{size}");
             }
             return data;

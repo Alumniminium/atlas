@@ -9,7 +9,7 @@ namespace atlas
     internal class Program
     {
         public static string Version = "0.2b";
-        public static Configuration Config;
+        public static Configuration Cfg;
         public static GeminiServer GeminiServer;
         public static SpartanServer SpartanServer;
 
@@ -18,7 +18,7 @@ namespace atlas
             Console.WriteLine("Loading MimeMap...");
             MimeMap.LoadMimeMap();
             Console.WriteLine("Loading Config...");
-            Config = Configuration.Load();
+            Cfg = Configuration.Load();
             Console.WriteLine("Starting Gemini...");
             GeminiServer = new();
             GeminiServer.Start();
