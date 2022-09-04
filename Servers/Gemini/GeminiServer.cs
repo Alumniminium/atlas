@@ -29,9 +29,9 @@ namespace atlas.Servers.Gemini
                 },
                 ServerCertificateSelectionCallback = (_, host) =>
                 {
-                    if (Program.Config.Capsules.TryGetValue(host, out var capsule))
-                        return X509Certificate.CreateFromCertFile(capsule.AbsoluteTlsCertPath);
-                    return null;
+                    return Program.Config.Capsules.TryGetValue(host, out var capsule)
+                        ? X509Certificate.CreateFromCertFile(capsule.AbsoluteTlsCertPath)
+                        : null;
                 }
             };
 
@@ -77,10 +77,9 @@ namespace atlas.Servers.Gemini
 
                 ctx.Uri = new Uri(ctx.Request);
 
-                if (ctx.Uri.Scheme == "titan")
-                    response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
-                else
-                    response = await ProcessGetRequest(ctx).ConfigureAwait(false);
+                response = ctx.Uri.Scheme == "titan"
+                    ? await ProcessUploadRequest(ctx).ConfigureAwait(false)
+                    : await ProcessGetRequest(ctx).ConfigureAwait(false);
 
                 if (!Program.Config.SlowMode || response.MimeType != "text/gemini")
                     await ctx.Stream.WriteAsync(response);
@@ -155,10 +154,7 @@ namespace atlas.Servers.Gemini
                     var cert = new X509Certificate2(shittyCert);
                     if (DateTime.Now < cert.NotBefore)
                         return false;
-                    if (DateTime.Now > cert.NotAfter)
-                        return false;
-
-                    return true;
+                    return DateTime.Now <= cert.NotAfter;
                 };
 
                 await tlsStream.AuthenticateAsServerAsync(TlsOptions).ConfigureAwait(false);

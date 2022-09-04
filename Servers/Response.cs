@@ -31,24 +31,21 @@ namespace atlas.Servers
         }
         public static Response NotFound(string message, bool spartan = false)
         {
-            if (spartan)
-                return new($"{(int)SpartanStatusCode.ServerError} {message}.\r\n");
-
-            return new($"{(int)GeminiStatusCode.NotFound} {message}.\r\n");
+            return spartan
+                ? (new($"{(int)SpartanStatusCode.ServerError} {message}.\r\n"))
+                : (new($"{(int)GeminiStatusCode.NotFound} {message}.\r\n"));
         }
 
         public static Response BadRequest(string reason, bool spartan = false)
         {
-            if (spartan)
-                return new($"{(int)SpartanStatusCode.ServerError} {reason}\r\n");
-            return new($"{(int)GeminiStatusCode.BadRequest} {reason}\r\n");
+            return spartan ? (new($"{(int)SpartanStatusCode.ServerError} {reason}\r\n")) : (new($"{(int)GeminiStatusCode.BadRequest} {reason}\r\n"));
         }
 
         public static Response Redirect(string target, bool spartan = false)
         {
-            if (spartan)
-                return new($"{(int)SpartanStatusCode.Redirect} {target}\r\n");
-            return new($"{(int)GeminiStatusCode.RedirectPerm} gemini://{target}\r\n");
+            return spartan
+                ? (new($"{(int)SpartanStatusCode.Redirect} {target}\r\n"))
+                : (new($"{(int)GeminiStatusCode.RedirectPerm} gemini://{target}\r\n"));
         }
 
         public static Response ProxyDenied()

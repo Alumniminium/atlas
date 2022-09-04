@@ -10,7 +10,7 @@ namespace atlas.Servers
 {
     public static class CGI
     {
-        public static IEnumerable<string> ExecuteScript(Context ctx, string scriptName, string path, string PATH_INFO)
+        public static IEnumerable<string> ExecuteScript(Context ctx, string scriptName, string path, string PATHINFO)
         {
             var info = new ProcessStartInfo();
 
@@ -24,7 +24,7 @@ namespace atlas.Servers
             info.EnvironmentVariables.Add("SERVER_SOFTWARE", $"atlas/{Program.Version}");
             info.EnvironmentVariables.Add("SPARTAN_URL", ctx.Request.Replace("\r\n", ""));
             info.EnvironmentVariables.Add("SCRIPT_NAME", scriptName);
-            info.EnvironmentVariables.Add("PATH_INFO", PATH_INFO);
+            info.EnvironmentVariables.Add("PATH_INFO", PATHINFO);
             info.EnvironmentVariables.Add("QUERY_STRING", ctx.Uri.Query);
             info.EnvironmentVariables.Add("SERVER_NAME", ctx.Capsule.FQDN);
             info.EnvironmentVariables.Add("REMOTE_HOST", ctx.IP);
@@ -85,10 +85,7 @@ namespace atlas.Servers
             var errors = process.StandardError.ReadToEnd();
             if (process.ExitCode != 0)
             {
-                if (ctx.IsGemini)
-                    yield return $"{(int)GeminiStatusCode.CGIError} {errors}\r\n";
-                else
-                    yield return $"{(int)SpartanStatusCode.ServerError} {errors}\r\n";
+                yield return ctx.IsGemini ? $"{(int)GeminiStatusCode.CGIError} {errors}\r\n" : $"{(int)SpartanStatusCode.ServerError} {errors}\r\n";
             }
             Console.WriteLine(errors);
 

@@ -49,10 +49,7 @@ namespace atlas.Servers.Spartan
 
                 ctx.Uri = new Uri(ctx.Request);
 
-                if (size > 0)
-                    response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
-                else
-                    response = await ProcessGetRequest(ctx).ConfigureAwait(false);
+                response = size > 0 ? await ProcessUploadRequest(ctx).ConfigureAwait(false) : await ProcessGetRequest(ctx).ConfigureAwait(false);
 
                 await ctx.Stream.WriteAsync(response);
             }
