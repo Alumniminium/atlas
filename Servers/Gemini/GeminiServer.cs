@@ -152,9 +152,7 @@ namespace atlas.Servers.Gemini
                     ctx.Cert.SelfSignedCert = chain.ChainStatus.Any(x => x.Status == X509ChainStatusFlags.UntrustedRoot);
 
                     var cert = new X509Certificate2(shittyCert);
-                    if (DateTime.Now < cert.NotBefore)
-                        return false;
-                    return DateTime.Now <= cert.NotAfter;
+                    return DateTime.Now >= cert.NotBefore && DateTime.Now <= cert.NotAfter;
                 };
 
                 await tlsStream.AuthenticateAsServerAsync(TlsOptions).ConfigureAwait(false);
