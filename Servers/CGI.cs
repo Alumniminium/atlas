@@ -35,14 +35,14 @@ namespace atlas.Servers
             {
                 info.EnvironmentVariables.Add("GEMINI_URL", ctx.Request.Replace("\r\n", ""));
                 info.EnvironmentVariables.Add("TLS_VERSION", "1.3");
-                info.EnvironmentVariables.Add("REMOTE_USER", $"{gCtx.Cert.Subject}");
-                info.EnvironmentVariables.Add("TLS_CLIENT_VALID", $"{gCtx.Cert.Valid}");
-                info.EnvironmentVariables.Add("TLS_CLIENT_TRUSTED", $"{gCtx.Cert.Trusted}");
-                info.EnvironmentVariables.Add("TLS_CLIENT_SUBJECT", $"{gCtx.Cert.Subject}");
-                info.EnvironmentVariables.Add("TLS_CLIENT_HASH", gCtx.Cert.Thumbprint);
-                info.EnvironmentVariables.Add("TLS_CLIENT_NOT_BEFORE", gCtx.Cert.Certificate.NotBefore.ToString());
-                info.EnvironmentVariables.Add("TLS_CLIENT_NOT_AFTER", gCtx.Cert.Certificate.NotAfter.ToString());
-                info.EnvironmentVariables.Add("TLS_CLIENT_SERIAL_NUMBER", gCtx.Cert.Certificate.GetSerialNumberString());
+                info.EnvironmentVariables.Add("REMOTE_USER", $"{gCtx.CertSubject}");
+                info.EnvironmentVariables.Add("TLS_CLIENT_VALID", $"{gCtx.ValidCert}");
+                info.EnvironmentVariables.Add("TLS_CLIENT_TRUSTED", $"{gCtx.TrustedCert}");
+                info.EnvironmentVariables.Add("TLS_CLIENT_SUBJECT", $"{gCtx.CertSubject}");
+                info.EnvironmentVariables.Add("TLS_CLIENT_HASH", gCtx.CertThumbprint);
+                info.EnvironmentVariables.Add("TLS_CLIENT_NOT_BEFORE", gCtx.Certificate.NotBefore.ToString());
+                info.EnvironmentVariables.Add("TLS_CLIENT_NOT_AFTER", gCtx.Certificate.NotAfter.ToString());
+                info.EnvironmentVariables.Add("TLS_CLIENT_SERIAL_NUMBER", gCtx.Certificate.GetSerialNumberString());
             }
 
             info.WorkingDirectory = path;

@@ -57,20 +57,18 @@ namespace atlas.Servers
 
             if (location.RequireClientCert)
             {
-                if (!ctx.IsGemini)
+                if (ctx is not GeminiCtx gctx)
                 {
                     Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> requires certificate but spartan doesn't support that");
                     return Response.BadRequest("Client Certificate required - Connect using Gemini", !ctx.IsGemini);
                 }
-
-                var gctx = (GeminiCtx)ctx;
-
-                if (gctx.Cert == null)
+                if (gctx.Certificate == null)
                 {
                     Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Location '{location.AbsoluteRootPath}' -> requires a certificate but none was sent");
                     return Response.CertRequired();
                 }
             }
+            
             var f = Path.GetFileName(ctx.Uri.AbsolutePath);
             if (string.IsNullOrEmpty(f))
             {

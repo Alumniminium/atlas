@@ -45,7 +45,6 @@ namespace atlas.Servers.Gemini
             {
                 Console.WriteLine("[GEMINI] Waiting for connection...");
                 var socket = await Socket.AcceptAsync().ConfigureAwait(false);
-
                 var task = Task.Run(async () => await ProcessSocket(socket).ConfigureAwait(false));
             }
         }
@@ -70,6 +69,7 @@ namespace atlas.Servers.Gemini
                 if (!Uri.IsWellFormedUriString(ctx.Request, UriKind.Absolute))
                 {
                     await ctx.Stream.WriteAsync(Response.BadRequest("invalid request"));
+                    await ctx.Stream.FlushAsync();
                     return;
                 }
 
@@ -93,7 +93,6 @@ namespace atlas.Servers.Gemini
             try
             {
                 var tlsStream = (SslStream)ctx.Stream;
-                ctx.Cert = new ClientCert();
 
                 TlsOptions.RemoteCertificateValidationCallback = (_, shittyCert, chain, error) =>
                 {
@@ -103,27 +102,33 @@ namespace atlas.Servers.Gemini
                         return true;
                     }
                     Console.WriteLine("Chain: " + string.Join(' ', chain.ChainStatus.Select(x => x.Status)));
-                    ctx.Cert.SelfSignedCert = chain.ChainStatus.Any(x => x.Status == X509ChainStatusFlags.UntrustedRoot);
+                    ctx.SelfSignedCert = chain.ChainStatus.Any(x => x.Status == X509ChainStatusFlags.UntrustedRoot);
 
                     var cert = new X509Certificate2(shittyCert);
-                    return DateTime.Now >= cert.NotBefore && DateTime.Now <= cert.NotAfter;
+                    ctx.Certificate = cert;
+                    return true;
                 };
 
                 await tlsStream.AuthenticateAsServerAsync(TlsOptions).ConfigureAwait(false);
-                if (Program.Cfg.Capsules.TryGetValue(tlsStream.TargetHostName, out ctx.Capsule))
-                {
-                    if (tlsStream.RemoteCertificate != null)
-                    {
-                        ctx.Cert.SetCert(tlsStream.RemoteCertificate);
-                        Console.WriteLine($"Client Cert: {ctx.Cert.Subject}, Hash: {ctx.Cert.Thumbprint} ");
-                    }
-                    return true;
-                }
-                else
+
+                if (!Program.Cfg.Capsules.TryGetValue(tlsStream.TargetHostName, out ctx.Capsule))
                 {
                     Console.WriteLine($"[FAIL] vhost '{tlsStream.TargetHostName}' not configured.");
+                    await ctx.Stream.WriteAsync(Response.ProxyDenied());
+                    await ctx.Stream.FlushAsync();
                     return false;
                 }
+
+                if (ctx.Certificate != null)
+                    Console.WriteLine($"Client Cert: {ctx.CertSubject}, Hash: {ctx.CertThumbprint} ");
+
+                if (!ctx.ValidCert)
+                {
+                    await ctx.Stream.WriteAsync(Response.CertExpired().Data);
+                    await ctx.Stream.FlushAsync();
+                    return false;
+                }
+                return true;
             }
             catch (Exception e)
             {
@@ -158,7 +163,7 @@ namespace atlas.Servers.Gemini
             else
                 return Response.BadRequest("Invalid Size: " + strSizeBytes);
         }
-        private static async Task AnimatedResponse(GeminiCtx ctx, Response response)
+        private static async ValueTask AnimatedResponse(GeminiCtx ctx, Response response)
         {
             var lines = Encoding.UTF8.GetString(response.Data.ToArray()).Split('\n'); ;
             var timeCount = 0;
@@ -168,8 +173,8 @@ namespace atlas.Servers.Gemini
                 var line = lines[i] + '\n';
                 if (i == 0)
                 {
-                    ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
-                    ctx.Stream.Flush();
+                    await ctx.Stream.WriteAsync(Encoding.UTF8.GetBytes(line));
+                    await ctx.Stream.FlushAsync();
                     continue;
                 }
                 else if (line.StartsWith("#") && timeCount < maxTime)
@@ -178,34 +183,32 @@ namespace atlas.Servers.Gemini
                     foreach (var b in bytes)
                     {
                         ctx.Stream.WriteByte(b);
-                        ctx.Stream.Flush();
-                        await Task.Delay(16);
+                        await ctx.Stream.FlushAsync();
                         timeCount += 16;
+                        await Task.Delay(16);
                     }
-                    ctx.Stream.Write(Encoding.UTF8.GetBytes("\n"));
-                    ctx.Stream.Flush();
+                    await ctx.Stream.WriteAsync(Encoding.UTF8.GetBytes("\n"));
+                    await ctx.Stream.FlushAsync();
+                    continue;
                 }
                 else if (line.Length > 200 && !line.StartsWith("=>") && timeCount < maxTime)
                 {
-                    var words = line.Split(' ');
-                    foreach (var word in words)
+                    foreach (var word in line.Split(' ').Select(word => Encoding.UTF8.GetBytes(word + ' ')))
                     {
-                        ctx.Stream.Write(Encoding.UTF8.GetBytes(word + ' '));
-                        ctx.Stream.Flush();
-                        await Task.Delay(16);
+                        await ctx.Stream.WriteAsync(word);
+                        await ctx.Stream.FlushAsync();
                         timeCount += 16;
-                    }
-                }
-                else
-                {
-                    if (timeCount < maxTime)
-                    {
                         await Task.Delay(16);
-                        timeCount += 16;
                     }
-                    ctx.Stream.Write(Encoding.UTF8.GetBytes(line));
-                    ctx.Stream.Flush();
+                    continue;
                 }
+
+                await ctx.Stream.WriteAsync(Encoding.UTF8.GetBytes(line));
+                await ctx.Stream.FlushAsync();
+                timeCount += 16;
+
+                if (timeCount < maxTime)
+                    await Task.Delay(16);
             }
         }
     }

@@ -38,6 +38,7 @@ namespace atlas.Servers
                 : (new($"{(int)GeminiCode.RedirectPerm} gemini://{target}\r\n"));
         public static Response ProxyDenied() => new($"{(int)GeminiCode.ProxyRequestRefused}\r\n");
         public static Response CertRequired() => new($"{(int)GeminiCode.ClientCertRequired}\r\n");
+        internal static Response CertExpired()=> new($"{(int)GeminiCode.CertNotValid}\r\n");
         public static implicit operator ReadOnlyMemory<byte>(Response r) => r.Data;
     }
 }
