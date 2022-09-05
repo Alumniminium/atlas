@@ -23,7 +23,7 @@ namespace atlas.Servers
 
         public static Response Ok(Memory<byte> data, string mimeType = "text/gemini", bool spartan = false) => new(spartan, mimeType, data);
         public static Response Ok(bool spartan = false, string mimeType = "text/gemini") => spartan
-                ? new($"{(int)SpartanCode.Success}\r\n")
+                ? new($"{(int)SpartanCode.Success} \r\n")
                 : new($"{(int)GeminiCode.Success} {mimeType}\r\n");
         public static Response NotFound(string message, bool spartan = false) => spartan
                 ? (new($"{(int)SpartanCode.ServerError} {message}.\r\n"))
@@ -36,9 +36,9 @@ namespace atlas.Servers
         public static Response Redirect(string target, bool spartan = false) => spartan
                 ? (new($"{(int)SpartanCode.Redirect} {target}\r\n"))
                 : (new($"{(int)GeminiCode.RedirectPerm} gemini://{target}\r\n"));
-        public static Response ProxyDenied() => new($"{(int)GeminiCode.ProxyRequestRefused}\r\n");
-        public static Response CertRequired() => new($"{(int)GeminiCode.ClientCertRequired}\r\n");
-        internal static Response CertExpired()=> new($"{(int)GeminiCode.CertNotValid}\r\n");
+        public static Response ProxyDenied() => new($"{(int)GeminiCode.ProxyRequestRefused} \r\n");
+        public static Response CertRequired() => new($"{(int)GeminiCode.ClientCertRequired} \r\n");
+        internal static Response CertExpired()=> new($"{(int)GeminiCode.CertNotValid} \r\n");
         public static implicit operator ReadOnlyMemory<byte>(Response r) => r.Data;
     }
 }
