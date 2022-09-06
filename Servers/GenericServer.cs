@@ -16,7 +16,7 @@ namespace atlas.Servers
         public static async ValueTask ReceiveRequest(Context ctx)
         {
             Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> Receiving Request...");
-            var reqBuffer = new byte[ctx.MaxHeaderSize + 2]; // +2 for \r\n
+            var reqBuffer = new byte[ctx.MaxHeaderSize]; 
             var length = 0;
             while (await ctx.Stream.ReadAsync(reqBuffer.AsMemory(length, 1)).ConfigureAwait(false) == 1)
             {
@@ -39,14 +39,7 @@ namespace atlas.Servers
             if (ctx.Request.Contains(".."))
                 return Response.BadRequest("invalid request", !ctx.IsGemini);
             if (ctx.Uri.Host != ctx.Capsule.FQDN)
-                return Response.ProxyDenied();
-            if (ctx.Uri.Port != -1)
-            {
-                if (ctx.IsGemini && ctx.Uri.Port != Program.Cfg.GeminiPort)
-                    return Response.ProxyDenied();
-                if (ctx.Uri.Port != Program.Cfg.SpartanPort && !ctx.IsGemini)
-                    return Response.BadRequest("port invalid", !ctx.IsGemini);
-            }
+                return Proxy(ctx);
 
             var location = ctx.Capsule.GetLocation(ctx.Uri);
             if (location == null)
@@ -132,6 +125,35 @@ namespace atlas.Servers
 
             Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {data.Length / 1024f:0.00}kb of {mimeType}");
             return Response.Ok(data.AsMemory(), mimeType, !ctx.IsGemini);
+        }
+
+        private static Response Proxy(Context ctx)
+        {
+            return Response.ProxyDenied();
+            // var client = new TcpClient(ctx.Uri.Host, 1965);
+            // var stream = client.GetStream();
+            // var tlsStream = new SslStream(stream);
+            // var options = new SslClientAuthenticationOptions();
+            // options.RemoteCertificateValidationCallback = (_,_,_,_) => true;
+            // options.AllowRenegotiation=true;
+            // options.EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls13 | System.Security.Authentication.SslProtocols.Tls12;
+            // options.EncryptionPolicy = EncryptionPolicy.AllowNoEncryption;
+// 
+            // tlsStream.AuthenticateAsClient(options);
+            // tlsStream.Write(Encoding.UTF8.GetBytes(ctx.Uri.AbsoluteUri + "\r\n"));
+            // tlsStream.Flush();
+            // var buffer = new byte[10240];
+            // var idx = 0;
+            // while (tlsStream.CanRead)
+            // {
+                // var read = tlsStream.Read(buffer, idx, buffer.Length-idx);
+                // idx += read;
+                // if(read == 0) 
+                    // break;
+            // }
+            // var payload = string.Join('\n', Encoding.UTF8.GetString(buffer).Split("\r\n")[1..]);
+            // payload = "### proxied by her.st atlas\n" + payload;
+            // return Response.Ok(Encoding.UTF8.GetBytes(payload).AsMemory());
         }
 
         public static async ValueTask<Response> UploadFile(Context ctx, string path, Uri pathUri, string mimeType, int size)

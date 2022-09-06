@@ -23,7 +23,7 @@ namespace atlas.Data
                 if (uri.AbsolutePath.StartsWith("/cgi/"))
                     return new Location() { AbsoluteRootPath = AbsoluteRootPath + "/cgi/", CGI = true };
             }
-            return null;
+            return new Location { AbsoluteRootPath = Path.Join(AbsoluteRootPath, uri.AbsolutePath.StartsWith('/') ? Path.GetDirectoryName(uri.AbsolutePath[1..]) : Path.GetDirectoryName(uri.AbsolutePath)) };
         }
     }
 }

@@ -120,13 +120,15 @@ namespace atlas.Servers.Gemini
                 }
 
                 if (ctx.Certificate != null)
+                {
                     Console.WriteLine($"Client Cert: {ctx.CertSubject}, Hash: {ctx.CertThumbprint} ");
 
-                if (!ctx.ValidCert)
-                {
-                    await ctx.Stream.WriteAsync(Response.CertExpired().Data);
-                    await ctx.Stream.FlushAsync();
-                    return false;
+                    if (!ctx.ValidCert)
+                    {
+                        await ctx.Stream.WriteAsync(Response.CertExpired().Data);
+                        await ctx.Stream.FlushAsync();
+                        return false;
+                    }
                 }
                 return true;
             }

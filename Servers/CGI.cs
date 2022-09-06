@@ -29,21 +29,28 @@ namespace atlas.Servers
             info.EnvironmentVariables.Add("SERVER_NAME", ctx.Capsule.FQDN);
             info.EnvironmentVariables.Add("REMOTE_HOST", ctx.IP);
             info.EnvironmentVariables.Add("REMOTE_ADDR", ctx.IP);
-            info.EnvironmentVariables.Add("AUTH_TYPE", $"{(ctx.IsGemini ? "CERTIFICATE" : "NONE")}");
 
             if (ctx is GeminiCtx gCtx)
             {
                 info.EnvironmentVariables.Add("GEMINI_URL", ctx.Request.Replace("\r\n", ""));
                 info.EnvironmentVariables.Add("TLS_VERSION", "1.3");
-                info.EnvironmentVariables.Add("REMOTE_USER", $"{gCtx.CertSubject}");
-                info.EnvironmentVariables.Add("TLS_CLIENT_VALID", $"{gCtx.ValidCert}");
-                info.EnvironmentVariables.Add("TLS_CLIENT_TRUSTED", $"{gCtx.TrustedCert}");
-                info.EnvironmentVariables.Add("TLS_CLIENT_SUBJECT", $"{gCtx.CertSubject}");
-                info.EnvironmentVariables.Add("TLS_CLIENT_HASH", gCtx.CertThumbprint);
-                info.EnvironmentVariables.Add("TLS_CLIENT_NOT_BEFORE", gCtx.Certificate.NotBefore.ToString());
-                info.EnvironmentVariables.Add("TLS_CLIENT_NOT_AFTER", gCtx.Certificate.NotAfter.ToString());
-                info.EnvironmentVariables.Add("TLS_CLIENT_SERIAL_NUMBER", gCtx.Certificate.GetSerialNumberString());
+                if (gCtx.Certificate != null)
+                {
+                    info.EnvironmentVariables.Add("REMOTE_USER", $"{gCtx.CertSubject}");
+                    info.EnvironmentVariables.Add("TLS_CLIENT_VALID", $"{gCtx.ValidCert}");
+                    info.EnvironmentVariables.Add("TLS_CLIENT_TRUSTED", $"{gCtx.TrustedCert}");
+                    info.EnvironmentVariables.Add("TLS_CLIENT_SUBJECT", $"{gCtx.CertSubject}");
+                    info.EnvironmentVariables.Add("TLS_CLIENT_HASH", gCtx.CertThumbprint);
+                    info.EnvironmentVariables.Add("TLS_CLIENT_NOT_BEFORE", gCtx.Certificate.NotBefore.ToString());
+                    info.EnvironmentVariables.Add("TLS_CLIENT_NOT_AFTER", gCtx.Certificate.NotAfter.ToString());
+                    info.EnvironmentVariables.Add("TLS_CLIENT_SERIAL_NUMBER", gCtx.Certificate.GetSerialNumberString());
+                    info.EnvironmentVariables.Add("AUTH_TYPE", "CERTIFICATE");
+                }
+                else
+                    info.EnvironmentVariables.Add("AUTH_TYPE", "NONE");
             }
+            else 
+                info.EnvironmentVariables.Add("AUTH_TYPE", "CERTIFICATE");
 
             info.WorkingDirectory = path;
             info.UseShellExecute = false;
