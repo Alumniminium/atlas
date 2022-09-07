@@ -12,6 +12,8 @@ namespace atlas.Servers.Gemini
         public bool ValidCert => DateTime.Now < Certificate.NotAfter && DateTime.Now > Certificate.NotBefore;
         public bool TrustedCert => Certificate.Verify();
 
+        public GeminiRequest GeminiRequest;
+
         public GeminiCtx() => MaxHeaderSize = 1024;
 
         public void Dispose()
