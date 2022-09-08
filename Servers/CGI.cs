@@ -37,8 +37,8 @@ namespace atlas.Servers
                 if (gCtx.Certificate != null)
                 {
                     info.EnvironmentVariables.Add("REMOTE_USER", $"{gCtx.CertSubject}");
-                    info.EnvironmentVariables.Add("TLS_CLIENT_VALID", $"{gCtx.ValidCert}");
-                    info.EnvironmentVariables.Add("TLS_CLIENT_TRUSTED", $"{gCtx.TrustedCert}");
+                    info.EnvironmentVariables.Add("TLS_CLIENT_VALID", $"{gCtx.IsValidCert}");
+                    info.EnvironmentVariables.Add("TLS_CLIENT_TRUSTED", $"{gCtx.IsTrustedCert}");
                     info.EnvironmentVariables.Add("TLS_CLIENT_SUBJECT", $"{gCtx.CertSubject}");
                     info.EnvironmentVariables.Add("TLS_CLIENT_HASH", gCtx.CertThumbprint);
                     info.EnvironmentVariables.Add("TLS_CLIENT_NOT_BEFORE", gCtx.Certificate.NotBefore.ToString());
@@ -49,7 +49,7 @@ namespace atlas.Servers
                 else
                     info.EnvironmentVariables.Add("AUTH_TYPE", "NONE");
             }
-            else 
+            else
                 info.EnvironmentVariables.Add("AUTH_TYPE", "CERTIFICATE");
 
             info.WorkingDirectory = path;

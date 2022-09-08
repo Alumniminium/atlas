@@ -13,31 +13,26 @@ namespace atlas.Servers
     {
         public Socket Socket { get; set; }
 
-        public static async ValueTask ReceiveRequest(Context ctx)
+        public virtual async ValueTask ReceiveRequest(Context ctx)
         {
-            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> Receiving Request...");
             var reqBuffer = new byte[ctx.MaxHeaderSize];
-            var length = 0;
+            var totalRecvCount = 0;
 
             while (ctx.Stream.CanRead)
             {
-                var recvCount = await ctx.Stream.ReadAsync(reqBuffer.AsMemory(length, 1)).ConfigureAwait(false);
-                if(recvCount == 0) 
+                var recvCount = await ctx.Stream.ReadAsync(reqBuffer.AsMemory(totalRecvCount, reqBuffer.Length-totalRecvCount)).ConfigureAwait(false);
+                if (recvCount == 0)
                     break;
-                
-                ctx.Request += Encoding.UTF8.GetString(reqBuffer, length, 1);
-                length++;
+
+                ctx.Request += Encoding.UTF8.GetString(reqBuffer, totalRecvCount, recvCount);
+                totalRecvCount += recvCount;
 
                 if (ctx.Request.EndsWith("\r\n"))
                     break;
+                if (totalRecvCount == ctx.MaxHeaderSize)
+                    break;
             }
-
             ctx.Request = string.Join(string.Empty, ctx.Request[..^2]);
-            ctx.Request = ctx.Request.Replace($":{Program.Cfg.GeminiPort}", "");
-            ctx.Request = ctx.Request.Replace($":{Program.Cfg.SpartanPort}", "");
-            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Size: {length} bytes");
-            if (ctx is GeminiCtx gctx)
-                gctx.GeminiRequest = new GeminiRequest(new Uri(ctx.Request));
         }
 
         public static async ValueTask<Response> ProcessGetRequest(Context ctx)
@@ -211,7 +206,7 @@ namespace atlas.Servers
             foreach (var file in Directory.GetFiles(loc.AbsoluteRootPath))
             {
                 var fi = new FileInfo(file);
-                sb.AppendLine($"=> {ctx.Uri.Scheme}://{ctx.Capsule.FQDN}/{loc.AbsoluteRootPath.Replace(ctx.Capsule.AbsoluteRootPath, "")}/{Path.GetFileName(file)} {Util.CenterString(fi.CreationTimeUtc.ToString("yyy-MM-dd"), 26)} | {Util.CenterString($"{fi.Length / 1024 / 1024f:0.00}mb", 10)} | {Path.GetFileName(file)}");
+                sb.AppendLine($"=> {ctx.Uri.Scheme}://{ctx.Capsule.FQDN}/{loc.AbsoluteRootPath.Replace(ctx.Capsule.AbsoluteRootPath, "")}/{Path.GetFileName(file)} {Util.CenterString(fi.CreationTimeUtc.ToString("yyyy-MM-dd"), 12)} | {Util.CenterString($"{fi.Length / 1024 / 1024f:0.00}mb", 10)} | {Path.GetFileName(file)}");
             }
 
             return sb.ToString();

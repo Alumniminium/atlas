@@ -8,13 +8,13 @@ namespace atlas.Servers.Gemini
         public X509Certificate2 Certificate;
         public string CertSubject => Certificate.Subject.Replace("CN=", "", true, System.Globalization.CultureInfo.InvariantCulture);
         public string CertThumbprint => Certificate.Thumbprint;
-        public bool SelfSignedCert;
-        public bool ValidCert => DateTime.Now < Certificate.NotAfter && DateTime.Now > Certificate.NotBefore;
-        public bool TrustedCert => Certificate.Verify();
-
-        public GeminiRequest GeminiRequest;
-
-        public GeminiCtx() => MaxHeaderSize = 1024;
+        public bool IsSelfSignedCert;
+        public bool IsValidCert => DateTime.Now < Certificate.NotAfter && DateTime.Now > Certificate.NotBefore;
+        public bool IsTrustedCert => Certificate.Verify();
+        public GeminiCtx()
+        {
+            MaxHeaderSize = 1024;
+        }
 
         public void Dispose()
         {

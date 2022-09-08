@@ -27,7 +27,7 @@ namespace atlas.Servers.Spartan
             }
         }
 
-        private static async ValueTask ProcessSocket(Socket clientSocket)
+        private async ValueTask ProcessSocket(Socket clientSocket)
         {
             var ctx = new SpartanCtx()
             {
@@ -55,6 +55,15 @@ namespace atlas.Servers.Spartan
             }
             catch (Exception e) { Console.WriteLine(e); }
             finally { CloseConnection(ctx); }
+        }
+
+
+        public override async ValueTask ReceiveRequest(Context ctx)
+        {
+            Console.WriteLine($"[Spartan] {ctx.IP} -> Receiving Request...");
+            await base.ReceiveRequest(ctx);
+            ctx.Request = ctx.Request.Replace($":{Program.Cfg.SpartanPort}", "");
+            Console.WriteLine($"[Spartan] {ctx.IP} -> {ctx.Request}");
         }
 
         private static int ParseRequest(SpartanCtx ctx)

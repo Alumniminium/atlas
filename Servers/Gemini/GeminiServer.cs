@@ -34,7 +34,10 @@ namespace atlas.Servers.Gemini
                 }
             };
 
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+            {
+                NoDelay = true
+            };
             Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Cfg.GeminiPort));
             Socket.Listen();
         }
@@ -45,6 +48,7 @@ namespace atlas.Servers.Gemini
             {
                 Console.WriteLine("[GEMINI] Waiting for connection...");
                 var socket = await Socket.AcceptAsync().ConfigureAwait(false);
+                socket.NoDelay=true;
                 var task = Task.Run(async () => await ProcessSocket(socket).ConfigureAwait(false));
             }
         }
@@ -56,7 +60,7 @@ namespace atlas.Servers.Gemini
                 Socket = clientSocket,
                 Stream = new SslStream(new NetworkStream(clientSocket), false)
             };
-            Response response;
+            Response response = default;
 
             try
             {
@@ -75,9 +79,15 @@ namespace atlas.Servers.Gemini
 
                 ctx.Uri = new Uri(ctx.Request);
 
-                response = ctx.Uri.Scheme == "titan"
-                    ? await ProcessUploadRequest(ctx).ConfigureAwait(false)
-                    : await ProcessGetRequest(ctx).ConfigureAwait(false);
+                switch(ctx.Uri.Scheme)
+                {
+                    case "gemini":
+                        response = await ProcessGetRequest(ctx).ConfigureAwait(false);
+                        break;
+                    case "titan":
+                        response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
+                        break;
+                }
 
                 if (Program.Cfg.SlowMode && response.MimeType == "text/gemini")
                     await AnimatedResponse(ctx, response);
@@ -102,7 +112,7 @@ namespace atlas.Servers.Gemini
                         return true;
                     }
                     Console.WriteLine("Chain: " + string.Join(' ', chain.ChainStatus.Select(x => x.Status)));
-                    ctx.SelfSignedCert = chain.ChainStatus.Any(x => x.Status == X509ChainStatusFlags.UntrustedRoot);
+                    ctx.IsSelfSignedCert = chain.ChainStatus.Any(x => x.Status == X509ChainStatusFlags.UntrustedRoot);
 
                     var cert = new X509Certificate2(shittyCert);
                     ctx.Certificate = cert;
@@ -123,7 +133,7 @@ namespace atlas.Servers.Gemini
                 {
                     Console.WriteLine($"Client Cert: {ctx.CertSubject}, Hash: {ctx.CertThumbprint} ");
 
-                    if (!ctx.ValidCert)
+                    if (!ctx.IsValidCert)
                     {
                         await ctx.Stream.WriteAsync(Response.CertExpired().Data);
                         await ctx.Stream.FlushAsync();
@@ -139,6 +149,14 @@ namespace atlas.Servers.Gemini
             }
             return ctx.Capsule != null;
         }
+        public override async ValueTask ReceiveRequest(Context ctx)
+        {
+            Console.WriteLine($"[Gemini] {ctx.IP} -> Receiving Request...");
+            await base.ReceiveRequest(ctx);
+            ctx.Request = ctx.Request.Replace($":{Program.Cfg.GeminiPort}", "");
+            Console.WriteLine($"[Gemini] {ctx.IP} -> {ctx.Request}");
+        }
+
         public static async ValueTask<Response> ProcessUploadRequest(GeminiCtx ctx)
         {
             var titanArgs = ctx.Request.Split(';');
@@ -160,10 +178,9 @@ namespace atlas.Servers.Gemini
                     continue;
             }
 
-            if (int.TryParse(strSizeBytes, out var size))
-                return await UploadFile(ctx, path, pathUri, mimeType, size).ConfigureAwait(false);
-            else
-                return Response.BadRequest("Invalid Size: " + strSizeBytes);
+            return int.TryParse(strSizeBytes, out var size)
+                ? await UploadFile(ctx, path, pathUri, mimeType, size).ConfigureAwait(false)
+                : Response.BadRequest("Invalid Size: " + strSizeBytes);
         }
         private static async ValueTask AnimatedResponse(GeminiCtx ctx, Response response)
         {
