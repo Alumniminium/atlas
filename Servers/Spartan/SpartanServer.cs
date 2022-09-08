@@ -20,7 +20,7 @@ namespace atlas.Servers.Spartan
         {
             while (true)
             {
-                Console.WriteLine("[SPARTAN] Waiting for connection...");
+                Console.WriteLine("[Spartan] Waiting for connection...");
                 var socket = await Socket.AcceptAsync().ConfigureAwait(false);
 
                 var task = Task.Run(async () => await ProcessSocket(socket).ConfigureAwait(false));

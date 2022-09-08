@@ -46,7 +46,7 @@ namespace atlas.Servers.Gemini
         {
             while (true)
             {
-                Console.WriteLine("[GEMINI] Waiting for connection...");
+                Console.WriteLine("[Gemini] Waiting for connection...");
                 var socket = await Socket.AcceptAsync().ConfigureAwait(false);
                 socket.NoDelay=true;
                 var task = Task.Run(async () => await ProcessSocket(socket).ConfigureAwait(false));

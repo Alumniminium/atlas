@@ -14,15 +14,13 @@ namespace atlas.Servers
         {
             var info = new ProcessStartInfo();
 
-            var pathVar = info.Environment["PATH"];
             info.EnvironmentVariables.Clear();
             info.EnvironmentVariables.Add("DOTNET_CLI_HOME", "/home/trbl/.dotnet");
-            info.EnvironmentVariables.Add("PATH", pathVar);
             info.EnvironmentVariables.Add("GATEWAY_INTERFACE", "CGI/1.1");
             info.EnvironmentVariables.Add("SERVER_PROTOCOL", $"{(ctx.IsGemini ? "GEMINI" : "SPARTAN")}");
             info.EnvironmentVariables.Add("SERVER_PORT", $"{(ctx.IsGemini ? Program.Cfg.GeminiPort : Program.Cfg.SpartanPort)}");
             info.EnvironmentVariables.Add("SERVER_SOFTWARE", $"atlas/{Program.Version}");
-            info.EnvironmentVariables.Add("SPARTAN_URL", ctx.Request.Replace("\r\n", ""));
+            info.EnvironmentVariables.Add("URL", ctx.Request.Replace("\r\n", ""));
             info.EnvironmentVariables.Add("SCRIPT_NAME", scriptName);
             info.EnvironmentVariables.Add("PATH_INFO", PATHINFO);
             info.EnvironmentVariables.Add("QUERY_STRING", ctx.Uri.Query);
@@ -32,7 +30,6 @@ namespace atlas.Servers
 
             if (ctx is GeminiCtx gCtx)
             {
-                info.EnvironmentVariables.Add("GEMINI_URL", ctx.Request.Replace("\r\n", ""));
                 info.EnvironmentVariables.Add("TLS_VERSION", "1.3");
                 if (gCtx.Certificate != null)
                 {
@@ -44,13 +41,13 @@ namespace atlas.Servers
                     info.EnvironmentVariables.Add("TLS_CLIENT_NOT_BEFORE", gCtx.Certificate.NotBefore.ToString());
                     info.EnvironmentVariables.Add("TLS_CLIENT_NOT_AFTER", gCtx.Certificate.NotAfter.ToString());
                     info.EnvironmentVariables.Add("TLS_CLIENT_SERIAL_NUMBER", gCtx.Certificate.GetSerialNumberString());
-                    info.EnvironmentVariables.Add("AUTH_TYPE", "CERTIFICATE");
+                    info.EnvironmentVariables.Add("AUTH_TYPE", "certificate");
                 }
                 else
-                    info.EnvironmentVariables.Add("AUTH_TYPE", "NONE");
+                    info.EnvironmentVariables.Add("AUTH_TYPE", "none");
             }
             else
-                info.EnvironmentVariables.Add("AUTH_TYPE", "CERTIFICATE");
+                info.EnvironmentVariables.Add("AUTH_TYPE", "none");
 
             info.WorkingDirectory = path;
             info.UseShellExecute = false;
