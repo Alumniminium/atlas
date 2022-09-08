@@ -210,17 +210,17 @@ namespace atlas.Servers.Gemini
                     await ctx.Stream.FlushAsync();
                     continue;
                 }
-                else if (line.Length > 200 && !line.StartsWith("=>") && timeCount < maxTime)
-                {
-                    foreach (var word in line.Split(' ').Select(word => Encoding.UTF8.GetBytes(word + ' ')))
-                    {
-                        await ctx.Stream.WriteAsync(word);
-                        await ctx.Stream.FlushAsync();
-                        timeCount += 16;
-                        await Task.Delay(16);
-                    }
-                    continue;
-                }
+                // else if (line.Length > 200 && !line.StartsWith("=>") && timeCount < maxTime)
+                // {
+                //     foreach (var word in line.Split(' ').Select(word => Encoding.UTF8.GetBytes(word + ' ')))
+                //     {
+                //         await ctx.Stream.WriteAsync(word);
+                //         await ctx.Stream.FlushAsync();
+                //         timeCount += 16;
+                //         await Task.Delay(16);
+                //     }
+                //     continue;
+                // }
 
                 await ctx.Stream.WriteAsync(Encoding.UTF8.GetBytes(line));
                 await ctx.Stream.FlushAsync();

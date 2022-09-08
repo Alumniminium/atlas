@@ -13,7 +13,7 @@ namespace atlas.Servers.Gemini
         public bool IsTrustedCert => Certificate.Verify();
         public GeminiCtx()
         {
-            MaxHeaderSize = 1024;
+            MaxHeaderSize = 1026;
         }
 
         public void Dispose()

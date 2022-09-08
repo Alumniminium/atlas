@@ -4,7 +4,7 @@ namespace atlas.Servers.Spartan
     {
         public SpartanCtx()
         {
-            MaxHeaderSize = 1024;
+            MaxHeaderSize = 1026;
         }
     }
 }
