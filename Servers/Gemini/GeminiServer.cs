@@ -88,7 +88,7 @@ namespace atlas.Servers.Gemini
                         response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
                         break;
                 }
-
+                Statistics.AddResponse(response);
                 if (Program.Cfg.SlowMode && response.MimeType == "text/gemini")
                     await AnimatedResponse(ctx, response);
                 else

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using atlas.Data;
 using atlas.Servers.Gemini;
+using static atlas.Stats;
 
 namespace atlas.Servers
 {
@@ -33,6 +34,7 @@ namespace atlas.Servers
                     break;
             }
             ctx.Request = string.Join(string.Empty, ctx.Request[..^2]);
+            Statistics.AddRequest(ctx);
         }
 
         public static async ValueTask<Response> ProcessGetRequest(Context ctx)
@@ -107,12 +109,15 @@ namespace atlas.Servers
                     counter++;
                 }
                 Console.WriteLine($"--- END CGI STREAM ---");
-                return new("");
+                return new("",ctx.IsSpartan);
             }
 
             ctx.Request = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
             if (ctx.Request == ctx.Capsule.AbsoluteTlsCertPath)
                 return Response.NotFound("nice try");
+
+            if(ctx.Request.EndsWith("/atlas.stats"))
+                return Statistics.GetStatistics();
 
             if (!File.Exists(ctx.Request))
             {

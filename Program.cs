@@ -8,7 +8,7 @@ namespace atlas
 {
     internal class Program
     {
-        public static string Version = "0.2b";
+        public static string Version = "0.2d";
         public static Configuration Cfg;
         public static GeminiServer GeminiServer;
         public static SpartanServer SpartanServer;
@@ -26,7 +26,7 @@ namespace atlas
             SpartanServer = new();
             SpartanServer.Start();
             Console.WriteLine($"Atlas/{Version} Ready!");
-
+            Statistics.Populate();
             while (true)
                 Thread.Sleep(int.MaxValue);
         }

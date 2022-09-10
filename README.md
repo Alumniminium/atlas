@@ -8,6 +8,7 @@
 * x86, x64 and ARM
 
 ## Features
+* analythics
 * server side animations on supported clients (eg. Lagrange)
 * gemini:// with titan:// file uploads
 * automatic certificate generation if none specified
@@ -19,6 +20,68 @@
 * easy JSON config file
 * easy tsv Mimetype map
 * dockerfile available
+
+## analythics
+# Atlas Statistics
+
+## Hits
+
+```
+9	                                                ███                     
+8	                                                ███                     
+8	                                                ███                     
+7	                                                ███                     
+7	                                                ███                     
+6	                                                ███                     
+5	                                                ███                     
+5	                                                ███                     
+4	                                                ███                     
+4	                                                ███                     
+3	                                                ███                     
+2	                                                ███                     
+2	                                                ███                     
+1	                                                ███                     
+1	                                                ███                     
+ 	Jan   Feb   Mar   Apr   May   Jun   Jul   Aug   Sep   Oct   Nov   Dec   
+```
+
+## Requests
+
+```
+[1]	█████████████████████████████████████████████████████████████████	33%
+[2]	█████████████████████████████████████████████████████████████████	33%
+[3]	██████████████████████                                           	11%
+[4]	██████████████████████                                           	11%
+[5]	██████████████████████                                           	11%
+
+[1]	atlas.stats
+[2]	index.gmi
+[3]	blog/atlas-my-gemini-server.gmi
+[4]	pages/atlas.gmi
+[5]	blog/the-http-web-is-a-lost-cause.gmi
+```
+
+## Bandwidth (Day)
+
+```
+37K	                                                ████            
+35K	                                                ████            
+32K	                                                ████            
+30K	                                                ████            
+27K	                                                ████            
+25K	                                                ████            
+22K	                                                ████            
+20K	                                                ████            
+17K	                                                ████            
+15K	                                                ████            
+12K	                                                ████            
+10K	                                                ████            
+7K	                                                ████            
+5K	                                                ████            
+2K	                                                ████            
+ 	Sun     Mon     Tue     Wed     Thu     Fri     Sat     Sat     
+```
+
 
 ### Roadmap (in no particular order):
 
