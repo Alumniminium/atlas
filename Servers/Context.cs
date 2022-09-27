@@ -12,7 +12,7 @@ namespace atlas.Servers
         public bool IsSpartan => this is not GeminiCtx;
         public int MaxHeaderSize;
         public Socket Socket;
-        public Stream Stream = Stream.Null;
+        public Stream Stream;
         public Capsule Capsule;
         public Uri Uri;
         public string Request = string.Empty;

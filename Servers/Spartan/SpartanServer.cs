@@ -43,6 +43,7 @@ namespace atlas.Servers.Spartan
 
                 if (!Uri.IsWellFormedUriString(ctx.Request, UriKind.Absolute))
                 {
+                    Program.Log(ctx, $"Uri Invalid ({ctx.Request})");
                     await ctx.Stream.WriteAsync(Response.BadRequest("invalid request"));
                     return;
                 }
@@ -50,7 +51,7 @@ namespace atlas.Servers.Spartan
                 ctx.Uri = new Uri(ctx.Request);
 
                 response = size > 0 ? await ProcessUploadRequest(ctx).ConfigureAwait(false) : await ProcessGetRequest(ctx).ConfigureAwait(false);
-
+                Statistics.AddResponse(response);
                 await ctx.Stream.WriteAsync(response);
             }
             catch (Exception e) { Console.WriteLine(e); }
@@ -60,10 +61,10 @@ namespace atlas.Servers.Spartan
 
         public override async ValueTask ReceiveRequest(Context ctx)
         {
-            Console.WriteLine($"[Spartan] {ctx.IP} -> Receiving Request...");
+            Program.Log(ctx, $"Receiving Request...");
             await base.ReceiveRequest(ctx);
             ctx.Request = ctx.Request.Replace($":{Program.Cfg.SpartanPort}", "");
-            Console.WriteLine($"[Spartan] {ctx.IP} -> {ctx.Request}");
+            Program.Log(ctx, $"Received Request!");
         }
 
         private static int ParseRequest(SpartanCtx ctx)

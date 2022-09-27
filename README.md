@@ -17,73 +17,96 @@
 * CGI streaming (for things like gemini://chat.mozz.us/)
 * vhosts
 * directory listing
-* easy JSON config file
-* easy tsv Mimetype map
-* dockerfile available
+* JSON config file
+* tsv Mimetype map
+* Docker Support
 
-## analythics
 # Atlas Statistics
-
+gemini://yourserver.com/atlas.stats
 ## Hits
 
 ```
-9	                                                ███                     
-8	                                                ███                     
-8	                                                ███                     
-7	                                                ███                     
-7	                                                ███                     
-6	                                                ███                     
-5	                                                ███                     
-5	                                                ███                     
-4	                                                ███                     
-4	                                                ███                     
-3	                                                ███                     
-2	                                                ███                     
-2	                                                ███                     
-1	                                                ███                     
-1	                                                ███                     
- 	Jan   Feb   Mar   Apr   May   Jun   Jul   Aug   Sep   Oct   Nov   Dec   
+  32┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+  24┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+  16┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+   8┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+   2┫                                         ███                
+    ┗━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━
+       J    F    M    A    M    J    J    A    S    O    N    D  
+       a    e    a    p    a    u    u    u    e    c    o    e  
+       n    b    r    r    y    n    l    g    p    t    v    c  
 ```
-
 ## Requests
+```
+0 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2 ┣━━━━━━━━━━━━━━━━━━━━━
+3 ┣━━━━━━━━━━━━━━━━━━━━━
+4 ┣━━━━━━━━━━━━━━━━━━━━━
+5 ┣━━━━━━━━━━━━━━
+6 ┣━━━━━━
+7 ┣━━━━━━
+8 ┣━━━━━━
+
+0  her.st/atlas.stats:                             10
+1  her.st/:                                        8
+2  her.st/blog/:                                   3
+3  her.st/pages/fsociety.gmi:                      3
+4  digdeeper.her.st/:                              3
+5  digdeeper.her.st/articles/fake_initiatives.gmi: 2
+6  her.st/holy-texts/cyberpunk-manifesto.gmi:      1
+7  digdeeper.her.st/articles/websites.gmi:         1
+8  digdeeper.her.st/index.gmi:                     1
 
 ```
-[1]	█████████████████████████████████████████████████████████████████	33%
-[2]	█████████████████████████████████████████████████████████████████	33%
-[3]	██████████████████████                                           	11%
-[4]	██████████████████████                                           	11%
-[5]	██████████████████████                                           	11%
-
-[1]	atlas.stats
-[2]	index.gmi
-[3]	blog/atlas-my-gemini-server.gmi
-[4]	pages/atlas.gmi
-[5]	blog/the-http-web-is-a-lost-cause.gmi
+## Bandwidth (Month)
 ```
-
+205K┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+154K┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+102K┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+ 51K┫                                         ███                
+    ┫                                         ███                
+    ┫                                         ███                
+ 12K┫                                         ███                
+    ┗━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━
+       J    F    M    A    M    J    J    A    S    O    N    D  
+       a    e    a    p    a    u    u    u    e    c    o    e  
+       n    b    r    r    y    n    l    g    p    t    v    c  
+```
 ## Bandwidth (Day)
-
 ```
-37K	                                                ████            
-35K	                                                ████            
-32K	                                                ████            
-30K	                                                ████            
-27K	                                                ████            
-25K	                                                ████            
-22K	                                                ████            
-20K	                                                ████            
-17K	                                                ████            
-15K	                                                ████            
-12K	                                                ████            
-10K	                                                ████            
-7K	                                                ████            
-5K	                                                ████            
-2K	                                                ████            
- 	Sun     Mon     Tue     Wed     Thu     Fri     Sat     Sat     
+Sun:    0 ┣
+Mon:  78K ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Tue: 126K ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Wed:    0 ┣
+Thu:    0 ┣
+Fri:    0 ┣
+Sat:    0 ┣
+
 ```
 
 
-### Roadmap (in no particular order):
+## Roadmap (in no particular order):
 
 * FastCGI
 * Use single Docker volume
@@ -149,12 +172,7 @@
   }
 }
 ```
-
-### sample CGI script
-
-[atlas-comments](https://github.com/Alumniminium/atlas-comments)
-
-### CGI Interface
+## CGI Interface
 
 The CGI interface provides the following environment variables:
 
@@ -183,3 +201,8 @@ The CGI interface provides the following environment variables:
 | TLS_CLIENT_SERIAL_NUMBER | The Certificate Serial Number | |
 | AUTH_TYPE | CERTIFICATE or NONE | NONE | 
 
+
+## sample CGI script
+
+Commenting **on** Articles
+[atlas-comments](https://github.com/Alumniminium/atlas-comments)

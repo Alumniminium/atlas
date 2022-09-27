@@ -72,6 +72,7 @@ namespace atlas.Servers.Gemini
 
                 if (!Uri.IsWellFormedUriString(ctx.Request, UriKind.Absolute))
                 {
+                    Program.Log(ctx, $"Uri Invalid ({ctx.Request})");
                     await ctx.Stream.WriteAsync(Response.BadRequest("invalid request"));
                     await ctx.Stream.FlushAsync();
                     return;
@@ -88,6 +89,7 @@ namespace atlas.Servers.Gemini
                         response = await ProcessUploadRequest(ctx).ConfigureAwait(false);
                         break;
                 }
+
                 Statistics.AddResponse(response);
                 if (Program.Cfg.SlowMode && response.MimeType == "text/gemini")
                     await AnimatedResponse(ctx, response);
@@ -103,15 +105,11 @@ namespace atlas.Servers.Gemini
             try
             {
                 var tlsStream = (SslStream)ctx.Stream;
-
                 TlsOptions.RemoteCertificateValidationCallback = (_, shittyCert, chain, error) =>
                 {
                     if (shittyCert == null)
-                    {
-                        Console.WriteLine("No certificate");
                         return true;
-                    }
-                    Console.WriteLine("Chain: " + string.Join(' ', chain.ChainStatus.Select(x => x.Status)));
+                    
                     ctx.IsSelfSignedCert = chain.ChainStatus.Any(x => x.Status == X509ChainStatusFlags.UntrustedRoot);
 
                     var cert = new X509Certificate2(shittyCert);
@@ -123,7 +121,8 @@ namespace atlas.Servers.Gemini
 
                 if (!Program.Cfg.Capsules.TryGetValue(tlsStream.TargetHostName, out ctx.Capsule))
                 {
-                    Console.WriteLine($"[FAIL] vhost '{tlsStream.TargetHostName}' not configured.");
+                    ctx.Capsule = new Data.Capsule() {FQDN = tlsStream.TargetHostName};
+                    Program.Log(ctx, $"'{tlsStream.TargetHostName}' not configured.");
                     await ctx.Stream.WriteAsync(Response.ProxyDenied());
                     await ctx.Stream.FlushAsync();
                     return false;
@@ -131,7 +130,7 @@ namespace atlas.Servers.Gemini
 
                 if (ctx.Certificate != null)
                 {
-                    Console.WriteLine($"Client Cert: {ctx.CertSubject}, Hash: {ctx.CertThumbprint} ");
+                    Program.Log(ctx, $"Client Cert: {ctx.CertSubject}, Hash: {ctx.CertThumbprint}");
 
                     if (!ctx.IsValidCert)
                     {
@@ -144,17 +143,16 @@ namespace atlas.Servers.Gemini
             }
             catch (Exception e)
             {
-                Console.WriteLine($"{ctx.Socket.RemoteEndPoint} -> TLS HandShake aborted.");
-                Console.WriteLine(e);
+                Program.Log(ctx, "TLS HandShake aborted. Reason: "+e.Message);
             }
             return ctx.Capsule != null;
         }
         public override async ValueTask ReceiveRequest(Context ctx)
         {
-            Console.WriteLine($"[Gemini] {ctx.IP} -> Receiving Request...");
+            Program.Log(ctx, "Receiving Request...");
             await base.ReceiveRequest(ctx);
             ctx.Request = ctx.Request.Replace($":{Program.Cfg.GeminiPort}", "");
-            Console.WriteLine($"[Gemini] {ctx.IP} -> {ctx.Request}");
+            Program.Log(ctx, "Received!");
         }
 
         public static async ValueTask<Response> ProcessUploadRequest(GeminiCtx ctx)
@@ -210,17 +208,6 @@ namespace atlas.Servers.Gemini
                     await ctx.Stream.FlushAsync();
                     continue;
                 }
-                // else if (line.Length > 200 && !line.StartsWith("=>") && timeCount < maxTime)
-                // {
-                //     foreach (var word in line.Split(' ').Select(word => Encoding.UTF8.GetBytes(word + ' ')))
-                //     {
-                //         await ctx.Stream.WriteAsync(word);
-                //         await ctx.Stream.FlushAsync();
-                //         timeCount += 16;
-                //         await Task.Delay(16);
-                //     }
-                //     continue;
-                // }
 
                 await ctx.Stream.WriteAsync(Encoding.UTF8.GetBytes(line));
                 await ctx.Stream.FlushAsync();

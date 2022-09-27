@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
@@ -6,7 +7,6 @@ using System.Text;
 using System.Threading.Tasks;
 using atlas.Data;
 using atlas.Servers.Gemini;
-using static atlas.Stats;
 
 namespace atlas.Servers
 {
@@ -16,12 +16,12 @@ namespace atlas.Servers
 
         public virtual async ValueTask ReceiveRequest(Context ctx)
         {
-            var reqBuffer = new byte[ctx.MaxHeaderSize];
+            var reqBuffer = ArrayPool<byte>.Shared.Rent(ctx.MaxHeaderSize);
             var totalRecvCount = 0;
 
             while (ctx.Stream.CanRead)
             {
-                var recvCount = await ctx.Stream.ReadAsync(reqBuffer.AsMemory(totalRecvCount, reqBuffer.Length-totalRecvCount)).ConfigureAwait(false);
+                var recvCount = await ctx.Stream.ReadAsync(reqBuffer.AsMemory(totalRecvCount, reqBuffer.Length - totalRecvCount)).ConfigureAwait(false);
                 if (recvCount == 0)
                     break;
 
@@ -34,51 +34,55 @@ namespace atlas.Servers
                     break;
             }
             ctx.Request = string.Join(string.Empty, ctx.Request[..^2]);
+            ArrayPool<byte>.Shared.Return(reqBuffer);
         }
 
         public static async ValueTask<Response> ProcessGetRequest(Context ctx)
         {
             Statistics.AddRequest(ctx);
+
             if (ctx.Request.Contains(".."))
-                return Response.BadRequest("invalid request", !ctx.IsGemini);
+            {
+                var msg = "invalid request (..)";
+                Program.Log(ctx, msg);
+                return Response.BadRequest(msg, !ctx.IsGemini);
+            }
+                
             if (ctx.Uri.Host != ctx.Capsule.FQDN)
                 return Proxy(ctx);
 
             var location = ctx.Capsule.GetLocation(ctx.Uri);
-            if (location == null)
-            {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Location not found");
-                return Response.NotFound("Location not found", !ctx.IsGemini);
-            }
 
             if (location.RequireClientCert)
             {
                 if (ctx is not GeminiCtx gctx)
                 {
-                    Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> requires certificate but spartan doesn't support that");
-                    return Response.BadRequest("Client Certificate required - Connect using Gemini", !ctx.IsGemini);
+                    var msg = "this location requires gemini";
+                    Program.Log(ctx,msg);
+                    return Response.BadRequest(msg, !ctx.IsGemini);
                 }
                 if (gctx.Certificate == null)
                 {
-                    Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Location '{location.AbsoluteRootPath}' -> requires a certificate but none was sent");
+                    var msg = "this location requires a client certificate";
+                    Program.Log(ctx, msg);
                     return Response.CertRequired();
                 }
             }
 
-            var f = Path.GetFileName(ctx.Uri.AbsolutePath);
-            if (string.IsNullOrEmpty(f))
+            var fileName = Path.GetFileName(ctx.Uri.AbsolutePath);
+            if (string.IsNullOrEmpty(fileName))
             {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> No filename for request");
+                Program.Log(ctx, $"No filename for request");
                 if (location.DirectoryListing)
                 {
-                    Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Create DirectoryListing");
+                    Program.Log(ctx, $"Create DirectoryListing");
                     var gmi = CreateDirectoryListing(ctx, location);
-                    Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> DirectoryListing -> {gmi.Length} bytes");
+                    Program.Log(ctx, $"DirectoryListing -> {gmi.Length} bytes");
                     return Response.Ok(Encoding.UTF8.GetBytes(gmi).AsMemory(), "text/gemini", !ctx.IsGemini);
                 }
                 else
                 {
-                    Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Adding {location.Index} to request");
+                    Program.Log(ctx, $"Adding {location.Index} to request");
                     ctx.Request = Path.Combine(ctx.Request, location.Index);
                     ctx.Uri = new Uri(ctx.Request);
                 }
@@ -86,12 +90,12 @@ namespace atlas.Servers
 
             if (location.CGI)
             {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Invoking CGI");
+                Program.Log(ctx, "Invoking CGI");
+                
                 var cgiParts = ctx.Uri.AbsolutePath.Replace("/cgi/", "").Split('/');
                 var file = cgiParts[0];
                 var PATH_INFO = cgiParts.Length > 1 ? string.Join('/', cgiParts[1..]) : "/";
 
-                Console.WriteLine($"--- BEGIN CGI STREAM ---");
                 var counter = 0;
                 foreach (var line in CGI.ExecuteScript(ctx, file, location.AbsoluteRootPath, PATH_INFO))
                 {
@@ -108,28 +112,32 @@ namespace atlas.Servers
                     ctx.Stream.Flush();
                     counter++;
                 }
-                Console.WriteLine($"--- END CGI STREAM ---");
-                return new("",ctx.IsSpartan);
+                
+                return new("", ctx.IsSpartan);
             }
 
             ctx.Request = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
             if (ctx.Request == ctx.Capsule.AbsoluteTlsCertPath)
+            {
+                Program.Log(ctx, "Requested TLS Certificate");
                 return Response.NotFound("nice try");
+            }
 
-            if(ctx.Request.EndsWith("/atlas.stats"))
-                return Statistics.GetStatistics();
+            if (ctx.Request.EndsWith("/atlas.stats"))
+                return Statistics.Get();
 
             if (!File.Exists(ctx.Request))
             {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> Not Found");
-                return Response.NotFound(ctx.Request, !ctx.IsGemini);
+                var msg = $"Not Found: {ctx.Request}";
+                Program.Log(ctx, msg);
+                return Response.NotFound(msg, !ctx.IsGemini);
             }
 
             var ext = Path.GetExtension(ctx.Request);
-            var mimeType = MimeMap.GetMimeType(ext);
+            var mimeType = MimeMap.GetMimeType(ext, location.DefaultMimeType);
             var data = await File.ReadAllBytesAsync(ctx.Request).ConfigureAwait(false);
 
-            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {data.Length / 1024f:0.00}kb of {mimeType}");
+            Program.Log(ctx, $"{data.Length / 1024f:0.00}kb of {mimeType}");
             return Response.Ok(data.AsMemory(), mimeType, !ctx.IsGemini);
         }
 
@@ -166,39 +174,42 @@ namespace atlas.Servers
         {
             var location = ctx.Capsule.GetLocation(pathUri);
 
-            if (string.IsNullOrEmpty(path) || location == null)
+            if (string.IsNullOrEmpty(path))
             {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} missing location or path");
-                return Response.BadRequest("missing filaneme or forbidden path", !ctx.IsGemini);
+                var msg = $"{ctx.Request} missing location or path";
+                Program.Log(ctx, msg);
+                return Response.BadRequest(msg, !ctx.IsGemini);
             }
-            if (ctx.Capsule.MaxUploadSize <= size)
+            if (ctx.Capsule.MaxUploadSize <= size || location.MaxUploadSize <= size)
             {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}");
-                return Response.BadRequest($"{size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}", !ctx.IsGemini);
+                var msg = $"{size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}";
+                Program.Log(ctx, msg);
+                return Response.BadRequest(msg, !ctx.IsGemini);
             }
 
             var isAllowedType = location.AllowedMimeTypes.Any(x => x.Key.ToLowerInvariant() == mimeType.ToLowerInvariant() || (x.Key.ToLowerInvariant().Split('/')[1] == "*" && mimeType.Split('/')[0] == x.Key.ToLowerInvariant().Split('/')[0]));
 
             if (!isAllowedType)
             {
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {mimeType} not allowed at {location.AbsoluteRootPath}");
-                return Response.BadRequest("mimetype not allowed here", !ctx.IsGemini);
+                var msg = $"{mimeType} not allowed at {location.AbsoluteRootPath}";
+                Program.Log(ctx, msg);
+                return Response.BadRequest(msg, !ctx.IsGemini);
             }
 
             var data = await ReceivePayload(ctx, size).ConfigureAwait(false);
-            File.WriteAllBytes(path, data.ToArray());
+            await File.WriteAllBytesAsync(path, data.ToArray());
             return Response.Redirect($"{ctx.Capsule.FQDN}{Path.GetDirectoryName(pathUri.AbsolutePath)}/", !ctx.IsGemini);
         }
 
         private static async Task<Memory<byte>> ReceivePayload(Context ctx, int size)
         {
-            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> receiving {size / 1024f:0.00}kb payload");
-            var data = new Memory<byte>();//[size];
+            Program.Log(ctx, $"receiving {size / 1024f:0.00}kb payload");
+            var data = new Memory<byte>();
             var fileLen = 0;
             while (fileLen != size)
             {
                 fileLen += await ctx.Stream.ReadAsync(data[fileLen..size]).ConfigureAwait(false);
-                Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> received {fileLen}/{size}");
+                Program.Log(ctx, $"received {fileLen}/{size}");
             }
             return data;
         }
@@ -219,7 +230,7 @@ namespace atlas.Servers
 
         public static void CloseConnection(Context ctx)
         {
-            Console.WriteLine($"[{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> complete");
+            Program.Log(ctx, "complete");
             ctx.Stream.Flush();
             ctx.Socket.Close();
             ctx.Stream.Dispose();

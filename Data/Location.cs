@@ -9,7 +9,9 @@ namespace atlas.Data
         public bool DirectoryListing { get; set; }
         public string AbsoluteRootPath { get; set; } = string.Empty;
         public bool AllowFileUploads { get; set; }
+        public int MaxUploadSize { get; set; }
         public bool RequireClientCert { get; set; }
+        public string DefaultMimeType { get; set; } = "text/gemini";
         public Dictionary<string, MimeConfig> AllowedMimeTypes { get; set; } = new();
     }
 }

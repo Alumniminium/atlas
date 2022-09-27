@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using atlas.Data;
+using atlas.Servers;
 using atlas.Servers.Gemini;
 using atlas.Servers.Spartan;
 
@@ -8,7 +9,7 @@ namespace atlas
 {
     internal class Program
     {
-        public static string Version = "0.2d";
+        public static string Version = "0.2e";
         public static Configuration Cfg;
         public static GeminiServer GeminiServer;
         public static SpartanServer SpartanServer;
@@ -26,9 +27,17 @@ namespace atlas
             SpartanServer = new();
             SpartanServer.Start();
             Console.WriteLine($"Atlas/{Version} Ready!");
-            Statistics.Populate();
+            Statistics.Load();
             while (true)
                 Thread.Sleep(int.MaxValue);
+        }
+
+        public static void Log(Context ctx, string text)
+        {
+            if (string.IsNullOrWhiteSpace(ctx.Request))
+                Console.WriteLine($"[{ctx.Capsule?.FQDN}] [{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {text}");
+            else
+                Console.WriteLine($"[{ctx.Capsule?.FQDN}] [{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {text}");
         }
     }
 }

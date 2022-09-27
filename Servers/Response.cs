@@ -5,15 +5,17 @@ using atlas.Servers.Spartan;
 
 namespace atlas.Servers
 {
-    public class Response
+    public sealed class Response
     {
         public bool IsGemini { get; set; }
         public Memory<byte> Data;
         public string MimeType { get; set; } = "text/gemini";
 
-        public Response(Memory<byte> bytes)
+        public Response(Memory<byte> bytes) => Data = bytes;
+        public Response(ReadOnlySpan<byte> bytes)
         {
-            Data = bytes;
+            Data = new Memory<byte>(new byte[bytes.Length]);
+            bytes.CopyTo(Data.Span);
         }
 
         public Response(string data, bool spartan)
@@ -50,13 +52,13 @@ namespace atlas.Servers
                 ? (new($"{(int)SpartanCode.Redirect} {target}\r\n",spartan))
                 : (new($"{(int)GeminiCode.RedirectPerm} gemini://{target}\r\n",spartan));
 
-        public static Response ProxyDenied() => new($"{(int)GeminiCode.ProxyRequestRefused} \r\n",false);
+        public static Response ProxyDenied() => new("53 \r\n"u8);
 
-        public static Response ProxyError() => new($"{(int)GeminiCode.ProxyError} \r\n",false);
+        public static Response ProxyError() => new("43 \r\n"u8);
 
-        public static Response CertRequired() => new($"{(int)GeminiCode.ClientCertRequired} \r\n",false);
+        public static Response CertRequired() => new("60 \r\n"u8);
 
-        internal static Response CertExpired() => new($"{(int)GeminiCode.CertNotValid} \r\n",false);
+        internal static Response CertExpired() => new("62 \r\n"u8);
 
         public static implicit operator ReadOnlyMemory<byte>(Response r) => r.Data;
     }
