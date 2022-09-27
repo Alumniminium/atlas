@@ -17,6 +17,8 @@
 * CGI streaming (for things like gemini://chat.mozz.us/)
 * vhosts
 * directory listing
+* Per Location Configuration
+* Configurable Default Mime Types
 * JSON config file
 * tsv Mimetype map
 * Docker Support
