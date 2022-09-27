@@ -23,87 +23,8 @@
 
 # Atlas Statistics
 gemini://yourserver.com/atlas.stats
-## Hits
 
-```
-  32┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-  24┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-  16┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-   8┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-   2┫                                         ███                
-    ┗━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━
-       J    F    M    A    M    J    J    A    S    O    N    D  
-       a    e    a    p    a    u    u    u    e    c    o    e  
-       n    b    r    r    y    n    l    g    p    t    v    c  
-```
-## Requests
-```
-0 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2 ┣━━━━━━━━━━━━━━━━━━━━━
-3 ┣━━━━━━━━━━━━━━━━━━━━━
-4 ┣━━━━━━━━━━━━━━━━━━━━━
-5 ┣━━━━━━━━━━━━━━
-6 ┣━━━━━━
-7 ┣━━━━━━
-8 ┣━━━━━━
-
-0  her.st/atlas.stats:                             10
-1  her.st/:                                        8
-2  her.st/blog/:                                   3
-3  her.st/pages/fsociety.gmi:                      3
-4  digdeeper.her.st/:                              3
-5  digdeeper.her.st/articles/fake_initiatives.gmi: 2
-6  her.st/holy-texts/cyberpunk-manifesto.gmi:      1
-7  digdeeper.her.st/articles/websites.gmi:         1
-8  digdeeper.her.st/index.gmi:                     1
-
-```
-## Bandwidth (Month)
-```
-205K┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-154K┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-102K┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
- 51K┫                                         ███                
-    ┫                                         ███                
-    ┫                                         ███                
- 12K┫                                         ███                
-    ┗━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━━━╋━━
-       J    F    M    A    M    J    J    A    S    O    N    D  
-       a    e    a    p    a    u    u    u    e    c    o    e  
-       n    b    r    r    y    n    l    g    p    t    v    c  
-```
-## Bandwidth (Day)
-```
-Sun:    0 ┣
-Mon:  78K ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Tue: 126K ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Wed:    0 ┣
-Thu:    0 ┣
-Fri:    0 ┣
-Sat:    0 ┣
-
-```
+![Stats Screenshot](/stats.webp?raw=true "Stats screenshot")
 
 
 ## Roadmap (in no particular order):
