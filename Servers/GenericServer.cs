@@ -34,11 +34,11 @@ namespace atlas.Servers
                     break;
             }
             ctx.Request = string.Join(string.Empty, ctx.Request[..^2]);
-            Statistics.AddRequest(ctx);
         }
 
         public static async ValueTask<Response> ProcessGetRequest(Context ctx)
         {
+            Statistics.AddRequest(ctx);
             if (ctx.Request.Contains(".."))
                 return Response.BadRequest("invalid request", !ctx.IsGemini);
             if (ctx.Uri.Host != ctx.Capsule.FQDN)

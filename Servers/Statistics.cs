@@ -10,20 +10,14 @@ namespace atlas
 {
     public class Stats
     {
-        public int TotalHits => GeminiHits + SpartanHits;
-        public int TotalBytesSent => GeminiBytesSent + SpartanBytesSent;
-        public int TotalBytesReceived => GeminiBytesReceived + SpartanBytesReceived;
+        public long TotalHits => GeminiHits;
+        public long TotalBytesSent => GeminiBytesSent;
+        public long TotalBytesReceived => GeminiBytesReceived;
 
-        public int GeminiHits { get; set; } = new();
-        public int GeminiBytesSent { get; set; } = new();
-        public int GeminiBytesReceived { get; set; } = new();
-
-        public int SpartanHits { get; set; } = new();
-        public int SpartanBytesSent { get; set; } = new();
-        public int SpartanBytesReceived { get; set; } = new();
-
-        public Dictionary<string, int> SpartanFiles { get; set; } = new();
-        public Dictionary<string, int> GeminiFiles { get; set; } = new();
+        public long GeminiHits { get; set; } = new();
+        public long GeminiBytesSent { get; set; } = new();
+        public long GeminiBytesReceived { get; set; } = new();
+        public Dictionary<string, long> GeminiFiles { get; set; } = new();
     }
 
     public static class Statistics
@@ -56,24 +50,12 @@ namespace atlas
             if (!DailyStats.ContainsKey(date))
                 DailyStats.Add(date, new Stats());
 
-            if (ctx.IsGemini)
-            {
-                if (!DailyStats[date].GeminiFiles.ContainsKey(ctx.Request))
-                    DailyStats[date].GeminiFiles.Add(ctx.Request, 0);
+            if (!DailyStats[date].GeminiFiles.ContainsKey(ctx.Request))
+                DailyStats[date].GeminiFiles.Add(ctx.Request, 0);
 
-                DailyStats[date].GeminiFiles[ctx.Request]++;
-                DailyStats[date].GeminiHits++;
-                DailyStats[date].GeminiBytesReceived += ctx.Request.Length;
-            }
-            else
-            {
-                if (!DailyStats[date].SpartanFiles.ContainsKey(ctx.Request))
-                    DailyStats[date].SpartanFiles.Add(ctx.Request, 0);
-
-                DailyStats[date].SpartanFiles[ctx.Request]++;
-                DailyStats[date].SpartanHits++;
-                DailyStats[date].SpartanBytesReceived += ctx.Request.Length;
-            }
+            DailyStats[date].GeminiFiles[ctx.Request]++;
+            DailyStats[date].GeminiHits++;
+            DailyStats[date].GeminiBytesReceived += ctx.Request.Length;
         }
         public static void AddResponse(Response response)
         {
@@ -81,10 +63,7 @@ namespace atlas
             if (!DailyStats.ContainsKey(date))
                 DailyStats.Add(date, new Stats());
 
-            if (response.IsGemini)
-                DailyStats[date].GeminiBytesSent += response.Data.Length;
-            else
-                DailyStats[date].SpartanBytesSent += response.Data.Length;
+            DailyStats[date].GeminiBytesSent += response.Data.Length;
         }
 
         public static Response GetStatistics()
@@ -92,34 +71,22 @@ namespace atlas
             var sb = new StringBuilder();
             sb.AppendLine("# Atlas Statistics");
             sb.AppendLine("## Hits");
+            sb.AppendLine("```");
             sb.AppendLine(PlotHitsByMonth());
+            sb.AppendLine("```");
             sb.AppendLine("## Requests");
+            sb.AppendLine("```");
             sb.AppendLine(PlotPopularRequests());
-            sb.AppendLine("## Bandwidth (Day)");
-            sb.AppendLine(PlotTotalBandwidthByDay());
+            sb.AppendLine("```");
             sb.AppendLine("## Bandwidth (Month)");
+            sb.AppendLine("```");
             sb.AppendLine(PlotTotalBandwidthByMonth());
-
-            sb.AppendLine("# Gemini");
-            sb.AppendLine("## Hits");
-            sb.AppendLine(PlotGeminiHitsByMonth());
-            sb.AppendLine("## Bandwidth (Month)");
-            sb.AppendLine(PlotGeminiTotalBandwidthByMonth());
+            sb.AppendLine("```");
             sb.AppendLine("## Bandwidth (Day)");
-            sb.AppendLine(PlotGeminiTotalBandwidthByDay());
-            sb.AppendLine("## Requests");
-            sb.AppendLine(PlotGeminiPopularRequests());
-
-            sb.AppendLine("# Spartan");
-            sb.AppendLine("## Hits");
-            sb.AppendLine(PlotSpartanHitsByMonth());
-            sb.AppendLine("## Bandwidth (Month)");
-            sb.AppendLine(PlotSpartanTotalBandwidthByMonth());
-            sb.AppendLine("## Bandwidth (Day)");
-            sb.AppendLine(PlotSpartanTotalBandwidthByDay());
-            sb.AppendLine("## Requests");
-            sb.AppendLine(PlotSpartanPopularRequests());
-
+            sb.AppendLine("```");
+            sb.AppendLine(PlotTotalBandwidthByDay());
+            sb.AppendLine("```");
+            Save();
             return Response.Ok(Encoding.UTF8.GetBytes(sb.ToString()).AsMemory(), "text/gemini", false);
         }
 
@@ -133,37 +100,26 @@ namespace atlas
                 Hits = x.Sum(y => y.Value.TotalHits)
             }).OrderBy(x => x.Month).ToList();
 
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            var max = monthlyStats.Max(x => x.Hits);
-
-            if (max == 0)
-                return "No data to plot";
-
-            var monthNames = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-            const int height = 15;
-
-            for (int i = 0; i < height; i++)
-            {
-                var y = (int)Math.Round((double)max / height * (height - i));
-                _ = sb.Append($"{y}\t");
-                foreach (var stat in monthlyStats)
-                {
-                    var x = (int)Math.Round((double)stat.Hits / max * height);
-                    if (x <= i)
-                        sb.Append("   ");
-                    else
-                        sb.Append("███");
-                    sb.Append("   ");
-                }
-                sb.AppendLine();
-            }
-            sb.Append(" \t");
+            var dict = new Dictionary<string,long>();
             foreach (var stat in monthlyStats)
-                sb.Append($"{monthNames[stat.Month - 1]}   ");
-            sb.AppendLine();
-            sb.AppendLine("```");
-            return sb.ToString();
+            {
+                if(stat.Month == 1) dict.Add("Jan", stat.Hits);
+                if(stat.Month == 2) dict.Add("Feb", stat.Hits);
+                if(stat.Month == 3) dict.Add("Mar", stat.Hits);
+                if(stat.Month == 4) dict.Add("Apr", stat.Hits);
+                if(stat.Month == 5) dict.Add("May", stat.Hits);
+                if(stat.Month == 6) dict.Add("Jun", stat.Hits);
+                if(stat.Month == 7) dict.Add("Jul", stat.Hits);
+                if(stat.Month == 8) dict.Add("Aug", stat.Hits);
+                if(stat.Month == 9) dict.Add("Sep", stat.Hits);
+                if(stat.Month == 10) dict.Add("Oct", stat.Hits);
+                if(stat.Month == 11) dict.Add("Nov", stat.Hits);
+                if(stat.Month == 12) dict.Add("Dec", stat.Hits);
+            }
+
+            var graph = new AsciiBarChart(dict);
+            var lines = graph.DrawVertical(20);
+            return string.Join(Environment.NewLine, lines);
         }
 
         public static string PlotTotalBandwidthByMonth()
@@ -172,90 +128,42 @@ namespace atlas
             var monthlyStats = DailyStats.GroupBy(x => x.Key.Month).Select(x => new
             {
                 Month = x.Key,
-                BytesSent = x.Sum(y => y.Value.TotalBytesSent),
-                BytesReceived = x.Sum(y => y.Value.TotalBytesReceived)
+                Bandwidth = x.Sum(y => y.Value.TotalBytesSent) + x.Sum(y => y.Value.TotalBytesReceived)
             }).OrderBy(x => x.Month).ToList();
 
-            if (monthlyStats.Count == 0)
-                return "No data to plot";
-
-            // plot hits by month as vertical bar chart
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            var max = monthlyStats.Max(x => x.BytesSent + x.BytesReceived);
-            var monthNames = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-            const int height = 15;
-            for (int i = 0; i < height; i++)
-            {
-                // append kilobytes or megabytes on y axis
-                if (max / 1000 > 1000)
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000000}M\t");
-                else
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000}K\t");
-
-                foreach (var stat in monthlyStats)
-                {
-                    var val = (int)Math.Round((double)(stat.BytesSent + stat.BytesReceived) / max * height);
-                    if (val <= i)
-                        sb.Append("   ");
-                    else
-                        sb.Append("███");
-                    sb.Append("   ");
-                }
-                sb.AppendLine();
-            }
-            sb.Append(" \t");
+            var dict = new Dictionary<string,long>();
             foreach (var stat in monthlyStats)
-                sb.Append($"{monthNames[stat.Month - 1]}   ");
-            sb.AppendLine();
-            sb.AppendLine("```");
-            return sb.ToString();
+            {
+                if(stat.Month == 1)  dict.Add("Jan", stat.Bandwidth);
+                if(stat.Month == 2)  dict.Add("Feb", stat.Bandwidth);
+                if(stat.Month == 3)  dict.Add("Mar", stat.Bandwidth);
+                if(stat.Month == 4)  dict.Add("Apr", stat.Bandwidth);
+                if(stat.Month == 5)  dict.Add("May", stat.Bandwidth);
+                if(stat.Month == 6)  dict.Add("Jun", stat.Bandwidth);
+                if(stat.Month == 7)  dict.Add("Jul", stat.Bandwidth);
+                if(stat.Month == 8)  dict.Add("Aug", stat.Bandwidth);
+                if(stat.Month == 9)  dict.Add("Sep", stat.Bandwidth);
+                if(stat.Month == 10) dict.Add("Oct", stat.Bandwidth);
+                if(stat.Month == 11) dict.Add("Nov", stat.Bandwidth);
+                if(stat.Month == 12) dict.Add("Dec", stat.Bandwidth);
+            }
+            
+            var graph = new AsciiBarChart(dict);
+            var lines = graph.DrawVertical(20);
+            return string.Join(Environment.NewLine, lines);
         }
 
         public static string PlotTotalBandwidthByDay()
-        {
-            // group hits by month
-            var weeklyStats = DailyStats.Where(x => x.Key >= DateOnly.FromDateTime(DateTime.Today.AddDays(-7))).Select(x => new
+        {            
+            var monthlyStats = DailyStats.Where(x => x.Key >= DateOnly.FromDateTime(DateTime.Today.AddDays(-6))).Select(x => new
             {
                 Day = x.Key.DayOfWeek,
-                BytesSent = x.Value.TotalBytesSent,
-                BytesReceived = x.Value.TotalBytesReceived
-            }).OrderBy(x => x.Day).ToList();
+                Bandwidth = x.Value.TotalBytesReceived +x.Value.TotalBytesSent
+            }).OrderBy(x => x.Day).ToDictionary(x => x.Day.ToString()[..3], x => x.Bandwidth);
 
-            if (weeklyStats.Count == 0)
-                return "No data to plot";
-
-            // plot hits by month as vertical bar chart
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            var max = weeklyStats.Max(x => x.BytesSent + x.BytesReceived);
-            var dayNames = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-            const int height = 15;
-            for (int i = 0; i < height; i++)
-            {
-                // append kilobytes or megabytes on y axis
-                if (max / 1000 > 1000)
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000000}M\t");
-                else
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000}K\t");
-
-                foreach (var stat in weeklyStats)
-                {
-                    var val = (int)Math.Round((double)(stat.BytesSent + stat.BytesReceived) / max * height);
-                    if (val <= i)
-                        sb.Append("    ");
-                    else
-                        sb.Append("████");
-                    sb.Append("    ");
-                }
-                sb.AppendLine();
-            }
-            sb.Append(" \t");
-            foreach (var stat in weeklyStats)
-                sb.Append($"{dayNames[(int)stat.Day]}     ");
-            sb.AppendLine();
-            sb.AppendLine("```");
-            return sb.ToString();
+            var graph = new AsciiBarChart(monthlyStats);
+            var lines = graph.DrawHorizontal(60);
+            return string.Join(Environment.NewLine, lines);
         }
 
         // graph most popular request names in ascii pie chart
@@ -264,400 +172,15 @@ namespace atlas
             var sb = new StringBuilder();
             sb.AppendLine("```");
             // sum up all requests and sort by hits
-            var requests = DailyStats.SelectMany(x => x.Value.GeminiFiles).GroupBy(x => x.Key).Select(x => new
+            var requests = DailyStats.SelectMany(x => x.Value.GeminiFiles).GroupBy(x => x.Key.Split(':')[1][2..]).Select(x => new
             {
                 Request = x.Key,
                 Hits = x.Sum(y => y.Value)
-            }).OrderByDescending(x => x.Hits).Take(20).ToList();
+            }).OrderByDescending(x => x.Hits).Take(20).Distinct().ToDictionary(x => x.Request, x => (long)x.Hits);
 
-            if (requests.Count == 0)
-                return "No data to plot";
-
-            var total = requests.Sum(x => x.Hits);
-            var max = requests.Max(x => x.Hits);
-            var counter = 1;
-            foreach (var request in requests)
-            {
-                _ = sb.Append($"[{counter}]\t");
-
-                for (int i = 0; i < 65; i++)
-                {
-                    if (request.Hits / (max / 65f) > i)
-                        sb.Append("█");
-                    else
-                        sb.Append(" ");
-                }
-                sb.Append($"\t{request.Hits * 100 / total}%");
-                counter++;
-                sb.AppendLine();
-            }
-            sb.AppendLine();
-            counter = 1;
-            foreach (var req in requests)
-            {
-                var name = string.Join('/', req.Request.Split('/')[3..]);
-                name = name == "" ? "index.gmi" : name;
-                _ = sb.AppendLine($"[{counter}]\t{name}");
-                counter++;
-            }
-            sb.AppendLine("```");
-            return sb.ToString();
-        }
-
-        public static string PlotGeminiHitsByMonth()
-        {
-            // group hits by month
-            var monthlyStats = DailyStats.GroupBy(x => x.Key.Month).Select(x => new
-            {
-                Month = x.Key,
-                Hits = x.Sum(y => y.Value.GeminiHits)
-            }).OrderBy(x => x.Month).ToList();
-
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            var max = monthlyStats.Max(x => x.Hits);
-
-            if (max == 0)
-                return "No data to plot";
-
-            var monthNames = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-            const int height = 15;
-
-            for (int i = 0; i < height; i++)
-            {
-                var y = (int)Math.Round((double)max / height * (height - i));
-                _ = sb.Append($"{y}\t");
-                foreach (var stat in monthlyStats)
-                {
-                    var x = (int)Math.Round((double)stat.Hits / max * height);
-                    if (x <= i)
-                        sb.Append("   ");
-                    else
-                        sb.Append("███");
-                    sb.Append("   ");
-                }
-                sb.AppendLine();
-            }
-            sb.Append(" \t");
-            foreach (var stat in monthlyStats)
-                sb.Append($"{monthNames[stat.Month - 1]}   ");
-            sb.AppendLine();
-            sb.AppendLine("```");
-            return sb.ToString();
-        }
-
-        public static string PlotGeminiTotalBandwidthByMonth()
-        {
-            // group hits by month
-            var monthlyStats = DailyStats.GroupBy(x => x.Key.Month).Select(x => new
-            {
-                Month = x.Key,
-                BytesSent = x.Sum(y => y.Value.GeminiBytesSent),
-                BytesReceived = x.Sum(y => y.Value.GeminiBytesReceived)
-            }).OrderBy(x => x.Month).ToList();
-
-            if (monthlyStats.Count == 0)
-                return "No data to plot";
-
-            // plot hits by month as vertical bar chart
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            var max = monthlyStats.Max(x => x.BytesSent + x.BytesReceived);
-            var monthNames = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-            const int height = 15;
-            for (int i = 0; i < height; i++)
-            {
-                // append kilobytes or megabytes on y axis
-                if (max / 1000 > 1000)
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000000}M\t");
-                else
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000}K\t");
-
-                foreach (var stat in monthlyStats)
-                {
-                    var val = (int)Math.Round((double)(stat.BytesSent + stat.BytesReceived) / max * height);
-                    if (val <= i)
-                        sb.Append("   ");
-                    else
-                        sb.Append("███");
-                    sb.Append("   ");
-                }
-                sb.AppendLine();
-            }
-            sb.Append(" \t");
-            foreach (var stat in monthlyStats)
-                sb.Append($"{monthNames[stat.Month - 1]}   ");
-            sb.AppendLine();
-            sb.AppendLine("```");
-            return sb.ToString();
-        }
-
-        public static string PlotGeminiTotalBandwidthByDay()
-        {
-            // group hits by month
-            var weeklyStats = DailyStats.Where(x => x.Key >= DateOnly.FromDateTime(DateTime.Today.AddDays(-7))).Select(x => new
-            {
-                Day = x.Key.DayOfWeek,
-                BytesSent = x.Value.GeminiBytesSent,
-                BytesReceived = x.Value.GeminiBytesReceived
-            }).OrderBy(x => x.Day).ToList();
-
-            if (weeklyStats.Count == 0)
-                return "No data to plot";
-
-            // plot hits by month as vertical bar chart
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            var max = weeklyStats.Max(x => x.BytesSent + x.BytesReceived);
-            var dayNames = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-            const int height = 15;
-            for (int i = 0; i < height; i++)
-            {
-                // append kilobytes or megabytes on y axis
-                if (max / 1000 > 1000)
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000000}M\t");
-                else
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000}K\t");
-
-                foreach (var stat in weeklyStats)
-                {
-                    var val = (int)Math.Round((double)(stat.BytesSent + stat.BytesReceived) / max * height);
-                    if (val <= i)
-                        sb.Append("    ");
-                    else
-                        sb.Append("████");
-                    sb.Append("    ");
-                }
-                sb.AppendLine();
-            }
-            sb.Append(" \t");
-            foreach (var stat in weeklyStats)
-                sb.Append($"{dayNames[(int)stat.Day]}     ");
-            sb.AppendLine();
-            sb.AppendLine("```");
-            return sb.ToString();
-        }
-        public static string PlotSpartanHitsByMonth()
-        {
-            // group hits by month
-            var monthlyStats = DailyStats.GroupBy(x => x.Key.Month).Select(x => new
-            {
-                Month = x.Key,
-                Hits = x.Sum(y => y.Value.SpartanHits)
-            }).OrderBy(x => x.Month).ToList();
-
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            var max = monthlyStats.Max(x => x.Hits);
-
-            if (max == 0)
-                return "No data to plot";
-
-            var monthNames = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-            const int height = 15;
-
-            for (int i = 0; i < height; i++)
-            {
-                var y = (int)Math.Round((double)max / height * (height - i));
-                _ = sb.Append($"{y}\t");
-                foreach (var stat in monthlyStats)
-                {
-                    var x = (int)Math.Round((double)stat.Hits / max * height);
-                    if (x <= i)
-                        sb.Append("   ");
-                    else
-                        sb.Append("███");
-                    sb.Append("   ");
-                }
-                sb.AppendLine();
-            }
-            sb.Append(" \t");
-            foreach (var stat in monthlyStats)
-                sb.Append($"{monthNames[stat.Month - 1]}   ");
-            sb.AppendLine();
-            sb.AppendLine("```");
-            return sb.ToString();
-        }
-
-        public static string PlotSpartanTotalBandwidthByMonth()
-        {
-            // group hits by month
-            var monthlyStats = DailyStats.GroupBy(x => x.Key.Month).Select(x => new
-            {
-                Month = x.Key,
-                BytesSent = x.Sum(y => y.Value.SpartanBytesSent),
-                BytesReceived = x.Sum(y => y.Value.SpartanBytesReceived)
-            }).OrderBy(x => x.Month).ToList();
-
-            if (monthlyStats.Count == 0)
-                return "No data to plot";
-
-            // plot hits by month as vertical bar chart
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            var max = monthlyStats.Max(x => x.BytesSent + x.BytesReceived);
-            var monthNames = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-            const int height = 15;
-            for (int i = 0; i < height; i++)
-            {
-                // append kilobytes or megabytes on y axis
-                if (max / 1000 > 1000)
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000000}M\t");
-                else
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000}K\t");
-
-                foreach (var stat in monthlyStats)
-                {
-                    var val = (int)Math.Round((double)(stat.BytesSent + stat.BytesReceived) / max * height);
-                    if (val <= i)
-                        sb.Append("   ");
-                    else
-                        sb.Append("███");
-                    sb.Append("   ");
-                }
-                sb.AppendLine();
-            }
-            sb.Append(" \t");
-            foreach (var stat in monthlyStats)
-                sb.Append($"{monthNames[stat.Month - 1]}   ");
-            sb.AppendLine();
-            sb.AppendLine("```");
-            return sb.ToString();
-        }
-
-        public static string PlotSpartanTotalBandwidthByDay()
-        {
-            // group hits by month
-            var weeklyStats = DailyStats.Where(x => x.Key >= DateOnly.FromDateTime(DateTime.Today.AddDays(-7))).Select(x => new
-            {
-                Day = x.Key.DayOfWeek,
-                BytesSent = x.Value.SpartanBytesSent,
-                BytesReceived = x.Value.SpartanBytesReceived
-            }).OrderBy(x => x.Day).ToList();
-
-            if (weeklyStats.Count == 0)
-                return "No data to plot";
-
-            // plot hits by month as vertical bar chart
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            var max = weeklyStats.Max(x => x.BytesSent + x.BytesReceived);
-            var dayNames = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-            const int height = 15;
-            for (int i = 0; i < height; i++)
-            {
-                // append kilobytes or megabytes on y axis
-                if (max / 1000 > 1000)
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000000}M\t");
-                else
-                    _ = sb.Append($"{(max - (max / height * i)) / 1000}K\t");
-
-                foreach (var stat in weeklyStats)
-                {
-                    var val = (int)Math.Round((double)(stat.BytesSent + stat.BytesReceived) / max * height);
-                    if (val <= i)
-                        sb.Append("    ");
-                    else
-                        sb.Append("████");
-                    sb.Append("    ");
-                }
-                sb.AppendLine();
-            }
-            sb.Append(" \t");
-            foreach (var stat in weeklyStats)
-                sb.Append($"{dayNames[(int)stat.Day]}     ");
-            sb.AppendLine();
-            sb.AppendLine("```");
-            return sb.ToString();
-        }
-
-        public static string PlotGeminiPopularRequests()
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            // sum up all requests and sort by hits
-            var requests = DailyStats.SelectMany(x => x.Value.GeminiFiles).GroupBy(x => x.Key).Select(x => new
-            {
-                Request = x.Key,
-                Hits = x.Sum(y => y.Value)
-            }).OrderByDescending(x => x.Hits).Take(20).ToList();
-
-            if (requests.Count == 0)
-                return "No data to plot";
-
-            var total = requests.Sum(x => x.Hits);
-            var max = requests.Max(x => x.Hits);
-            var counter = 1;
-            foreach (var request in requests)
-            {
-                _ = sb.Append($"[{counter}]\t");
-
-                for (int i = 0; i < 65; i++)
-                {
-                    if (request.Hits / (max / 65f) > i)
-                        sb.Append("█");
-                    else
-                        sb.Append(" ");
-                }
-                sb.Append($"\t{request.Hits * 100 / total}%");
-                counter++;
-                sb.AppendLine();
-            }
-            sb.AppendLine();
-            counter = 1;
-            foreach (var req in requests)
-            {
-                var name = string.Join('/', req.Request.Split('/')[3..]);
-                name = name == "" ? "index.gmi" : name;
-                _ = sb.AppendLine($"[{counter}]\t{name}");
-                counter++;
-            }
-            sb.AppendLine("```");
-            return sb.ToString();
-        }
-        public static string PlotSpartanPopularRequests()
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("```");
-            // sum up all requests and sort by hits
-            var requests = DailyStats.SelectMany(x => x.Value.SpartanFiles).GroupBy(x => x.Key).Select(x => new
-            {
-                Request = x.Key,
-                Hits = x.Sum(y => y.Value)
-            }).OrderByDescending(x => x.Hits).Take(20).ToList();
-
-            if (requests.Count == 0)
-                return "No data to plot";
-
-            var total = requests.Sum(x => x.Hits);
-            var max = requests.Max(x => x.Hits);
-            var counter = 1;
-            foreach (var request in requests)
-            {
-                _ = sb.Append($"[{counter}]\t");
-
-                for (int i = 0; i < 65; i++)
-                {
-                    if (request.Hits / (max / 65f) > i)
-                        sb.Append("█");
-                    else
-                        sb.Append(" ");
-                }
-                sb.Append($"\t{request.Hits * 100 / total}%");
-                counter++;
-                sb.AppendLine();
-            }
-            sb.AppendLine();
-            counter = 1;
-            foreach (var req in requests)
-            {
-                var name = string.Join('/', req.Request.Split('/')[3..]);
-                name = name == "" ? "index.gmi" : name;
-                _ = sb.AppendLine($"[{counter}]\t{name}");
-                counter++;
-            }
-            sb.AppendLine("```");
-            return sb.ToString();
+            var graph = new AsciiBarChart(requests);
+            var lines = graph.DrawHorizontal(120, false);
+            return string.Join(Environment.NewLine, lines);
         }
 
         public static void Save()
