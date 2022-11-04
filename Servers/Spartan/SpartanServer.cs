@@ -7,8 +7,10 @@ using atlas.Data;
 
 namespace atlas.Servers.Spartan
 {
-    public class SpartanServer : GenericServer
+    public class SpartanServer
     {
+        public Socket Socket { get; set; }
+
         public SpartanServer()
         {
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -22,74 +24,66 @@ namespace atlas.Servers.Spartan
             {
                 Console.WriteLine("[Spartan] Waiting for connection...");
                 var socket = await Socket.AcceptAsync().ConfigureAwait(false);
-
-                var task = Task.Run(async () => await ProcessSocket(socket).ConfigureAwait(false));
+                var task = Task.Run(async () =>
+                {
+                    var ctx = new SpartanCtx(socket);
+                    await ProcessSocket(ctx).ConfigureAwait(false);
+                });
             }
         }
 
-        private async ValueTask ProcessSocket(Socket clientSocket)
+        private static async ValueTask ProcessSocket(SpartanCtx ctx)
         {
-            var ctx = new SpartanCtx()
-            {
-                Socket = clientSocket,
-                Stream = new NetworkStream(clientSocket)
-            };
-            Response response;
-
             try
             {
-                await ReceiveRequest(ctx).ConfigureAwait(false);
-                int size = ParseRequest(ctx);
+                await ReadRequest(ctx);
 
                 if (!Uri.IsWellFormedUriString(ctx.Request, UriKind.Absolute))
                 {
                     Program.Log(ctx, $"Uri Invalid ({ctx.Request})");
-                    await ctx.Stream.WriteAsync(Response.BadRequest("invalid request"));
+                    ctx.Writer.Write(Response.BadRequest("invalid request").Data.Span);
                     return;
                 }
 
                 ctx.Uri = new Uri(ctx.Request);
 
-                response = size > 0 ? await ProcessUploadRequest(ctx).ConfigureAwait(false) : await ProcessGetRequest(ctx).ConfigureAwait(false);
+                var response = ctx.PayloadSize > 0 ? await ProcessUploadRequest(ctx).ConfigureAwait(false) : await DownloadProcessor.Process(ctx).ConfigureAwait(false);
                 Statistics.AddResponse(response);
-                await ctx.Stream.WriteAsync(response);
+                ctx.Writer.Write(response.Data.Span);
             }
             catch (Exception e) { Console.WriteLine(e); }
             finally { CloseConnection(ctx); }
         }
 
-
-        public override async ValueTask ReceiveRequest(Context ctx)
+        private static async ValueTask ReadRequest(SpartanCtx ctx)
         {
-            Program.Log(ctx, $"Receiving Request...");
-            await base.ReceiveRequest(ctx);
-            ctx.Request = ctx.Request.Replace($":{Program.Cfg.SpartanPort}", "");
-            Program.Log(ctx, $"Received Request!");
-        }
+            var req = await ctx.Reader.ReadLineAsync().ConfigureAwait(false);
 
-        private static int ParseRequest(SpartanCtx ctx)
-        {
-            var parts = ctx.Request.Split(' ');
+            var parts = req.Trim().Split(' ');
             var host = parts[0];
             var path = parts[1];
-            var size = int.Parse(parts[2]);
+            ctx.PayloadSize = int.Parse(parts[2]);
 
             if (Program.Cfg.Capsules.TryGetValue(host, out var capsule))
                 ctx.Capsule = capsule;
             ctx.Request = $"spartan://{host}{path}";
-
-            return size;
         }
 
         public static async ValueTask<Response> ProcessUploadRequest(SpartanCtx ctx)
         {
-            var parts = ctx.Request.Split(' ');
-            var pathUri = new Uri(parts[1]);
-            var size = int.Parse(parts[2]);
-            var absoluteDestinationPath = Path.Combine(ctx.Capsule.AbsoluteRootPath, pathUri.AbsolutePath[1..]);
-            var mimeType = MimeMap.GetMimeType(Path.GetExtension(pathUri.AbsolutePath));
+            var absoluteDestinationPath = Path.Combine(ctx.Capsule.AbsoluteRootPath, ctx.Uri.AbsolutePath[1..]);
+            var mimeType = MimeMap.GetMimeType(Path.GetExtension(ctx.Uri.AbsolutePath));
 
-            return await UploadFile(ctx, absoluteDestinationPath, pathUri, mimeType, size).ConfigureAwait(false);
+            return await DownloadProcessor.UploadFile(ctx, absoluteDestinationPath, ctx.Uri, mimeType, ctx.PayloadSize).ConfigureAwait(false);
+        }
+
+        public static void CloseConnection(Context ctx)
+        {
+            Program.Log(ctx, "complete");
+            ctx?.Reader?.Close();
+            ctx?.Reader?.Dispose();
+            ctx?.Socket?.Close();
+            ctx?.Socket?.Dispose();
         }
     }
 }

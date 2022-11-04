@@ -37,7 +37,7 @@ namespace atlas
             if (string.IsNullOrWhiteSpace(ctx.Request))
                 Console.WriteLine($"[{ctx.Capsule?.FQDN}] [{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {text}");
             else
-                Console.WriteLine($"[{ctx.Capsule?.FQDN}] [{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request} -> {text}");
+                Console.WriteLine($"[{ctx.Capsule?.FQDN}] [{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.IP} -> {ctx.Request.Trim()} -> {text}");
         }
     }
 }

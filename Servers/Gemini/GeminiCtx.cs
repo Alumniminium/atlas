@@ -1,4 +1,6 @@
 using System;
+using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
 namespace atlas.Servers.Gemini
@@ -11,9 +13,11 @@ namespace atlas.Servers.Gemini
         public bool IsSelfSignedCert;
         public bool IsValidCert => DateTime.Now < Certificate.NotAfter && DateTime.Now > Certificate.NotBefore;
         public bool IsTrustedCert => Certificate.Verify();
-        public GeminiCtx()
-        {
-            MaxHeaderSize = 1026;
+        public SslStream SslStream;
+        
+        public GeminiCtx(Socket socket) : base(socket, 1024) 
+        { 
+            SslStream = new SslStream(new NetworkStream(socket));
         }
 
         public void Dispose()

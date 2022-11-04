@@ -52,7 +52,7 @@ namespace atlas.Servers
             info.WorkingDirectory = path;
             info.UseShellExecute = false;
             info.FileName = $"sh";
-            info.Arguments = $"-c {Path.Combine(path, Path.GetFileName(scriptName))}";
+            info.Arguments = $"-c {Path.Combine(path, Path.GetFileName(scriptName)).Replace("//","/")}";
             info.RedirectStandardOutput = true;
             info.RedirectStandardError = true;
 

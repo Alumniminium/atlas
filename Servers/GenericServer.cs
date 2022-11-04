@@ -1,8 +1,6 @@
 using System;
-using System.Buffers;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using atlas.Data;
@@ -10,34 +8,9 @@ using atlas.Servers.Gemini;
 
 namespace atlas.Servers
 {
-    public class GenericServer
+    public class DownloadProcessor
     {
-        public Socket Socket { get; set; }
-
-        public virtual async ValueTask ReceiveRequest(Context ctx)
-        {
-            var reqBuffer = ArrayPool<byte>.Shared.Rent(ctx.MaxHeaderSize);
-            var totalRecvCount = 0;
-
-            while (ctx.Stream.CanRead)
-            {
-                var recvCount = await ctx.Stream.ReadAsync(reqBuffer.AsMemory(totalRecvCount, reqBuffer.Length - totalRecvCount)).ConfigureAwait(false);
-                if (recvCount == 0)
-                    break;
-
-                ctx.Request += Encoding.UTF8.GetString(reqBuffer, totalRecvCount, recvCount);
-                totalRecvCount += recvCount;
-
-                if (ctx.Request.EndsWith("\r\n"))
-                    break;
-                if (totalRecvCount == ctx.MaxHeaderSize)
-                    break;
-            }
-            ctx.Request = string.Join(string.Empty, ctx.Request[..^2]);
-            ArrayPool<byte>.Shared.Return(reqBuffer);
-        }
-
-        public static async ValueTask<Response> ProcessGetRequest(Context ctx)
+        public static async ValueTask<Response> Process(Context ctx)
         {
             Statistics.AddRequest(ctx);
 
@@ -47,7 +20,7 @@ namespace atlas.Servers
                 Program.Log(ctx, msg);
                 return Response.BadRequest(msg, !ctx.IsGemini);
             }
-                
+
             if (ctx.Uri.Host != ctx.Capsule.FQDN)
                 return Proxy(ctx);
 
@@ -58,7 +31,7 @@ namespace atlas.Servers
                 if (ctx is not GeminiCtx gctx)
                 {
                     var msg = "this location requires gemini";
-                    Program.Log(ctx,msg);
+                    Program.Log(ctx, msg);
                     return Response.BadRequest(msg, !ctx.IsGemini);
                 }
                 if (gctx.Certificate == null)
@@ -91,7 +64,7 @@ namespace atlas.Servers
             if (location.CGI)
             {
                 Program.Log(ctx, "Invoking CGI");
-                
+
                 var cgiParts = ctx.Uri.AbsolutePath.Replace("/cgi/", "").Split('/');
                 var file = cgiParts[0];
                 var PATH_INFO = cgiParts.Length > 1 ? string.Join('/', cgiParts[1..]) : "/";
@@ -108,11 +81,10 @@ namespace atlas.Servers
                         else
                             l += '\n';
                     }
-                    ctx.Stream.Write(Encoding.UTF8.GetBytes(l));
-                    ctx.Stream.Flush();
+                    ctx.Writer.Write(Encoding.UTF8.GetBytes(l));
                     counter++;
                 }
-                
+
                 return new("", ctx.IsSpartan);
             }
 
@@ -208,7 +180,7 @@ namespace atlas.Servers
             var fileLen = 0;
             while (fileLen != size)
             {
-                fileLen += await ctx.Stream.ReadAsync(data[fileLen..size]).ConfigureAwait(false);
+                fileLen += await ctx.Socket.ReceiveAsync(data[fileLen..size]).ConfigureAwait(false);
                 Program.Log(ctx, $"received {fileLen}/{size}");
             }
             return data;
@@ -226,15 +198,6 @@ namespace atlas.Servers
             }
 
             return sb.ToString();
-        }
-
-        public static void CloseConnection(Context ctx)
-        {
-            Program.Log(ctx, "complete");
-            ctx.Stream.Flush();
-            ctx.Socket.Close();
-            ctx.Stream.Dispose();
-            ctx.Socket.Dispose();
         }
     }
 }
