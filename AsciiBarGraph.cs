@@ -52,7 +52,7 @@ namespace atlas
             {
                 sb.Append("     ");
                 foreach (var label in lables)
-                    sb.Append(label.Length > i ? $"  {label[i]}  " : "    ");
+                    sb.Append(label.Length > i ? $"  {label[i]}  " : "     ");
                 sb.AppendLine();
             }
 
