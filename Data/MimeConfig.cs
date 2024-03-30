@@ -3,6 +3,7 @@ using System.IO;
 
 namespace atlas.Data
 {
+    public record MimeConfig(int MaxSizeBytes);
     public static class MimeMap
     {
         private static readonly Dictionary<string, string> ExtensionToMimeType = new();
@@ -29,9 +30,5 @@ namespace atlas.Data
                 ext = defaultExt;
             return ext;
         }
-    }
-    public class MimeConfig
-    {
-        public int MaxSizeBytes { get; set; }
     }
 }

@@ -20,6 +20,7 @@ namespace atlas.Data
         {
             var conf = new Configuration();
             var configPath = "/etc/atlas/config.json";
+
             if (File.Exists(configPath))
             {
                 Console.WriteLine($"Loading /etc/atlas/config.json ...");
@@ -56,6 +57,7 @@ namespace atlas.Data
                     var req = new CertificateRequest("cn=" + vhost.Value.FQDN, ecdsa, HashAlgorithmName.SHA256);
                     req.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: false));
                     req.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, false));
+
                     var cert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1000));
 
                     vhost.Value.AbsoluteTlsCertPath = Path.Combine(vhost.Value.AbsoluteRootPath, vhost.Value.FQDN + ".pfx");
@@ -103,13 +105,10 @@ namespace atlas.Data
 
                                     AllowedMimeTypes = new()
                                     {
-                                        ["text/*"] = new MimeConfig
-                                        {
-                                            MaxSizeBytes = 1024 * 1024 * 1,
-                                        },
-                                        ["image/*"] = new MimeConfig{},
-                                        ["audio/mpeg"] = new MimeConfig{},
-                                        ["audio/ogg"] = new MimeConfig{},
+                                        ["text/*"] = new MimeConfig(1024 * 1024 * 1),
+                                        ["image/*"] = new MimeConfig(default),
+                                        ["audio/mpeg"] = new MimeConfig(default),
+                                        ["audio/ogg"] = new MimeConfig(default),
                                     }
                                 },
                             }

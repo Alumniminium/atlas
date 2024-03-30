@@ -144,6 +144,9 @@ namespace atlas.Servers
 
         public static async ValueTask<Response> UploadFile(Context ctx, string path, Uri pathUri, string mimeType, int size)
         {
+            if (size > ctx.Capsule.MaxUploadSize)
+                return Response.BadRequest($"Payload exceeds limit of {ctx.Capsule.MaxUploadSize} bytes", !ctx.IsGemini);
+
             var location = ctx.Capsule.GetLocation(pathUri);
 
             if (string.IsNullOrEmpty(path))
@@ -152,9 +155,17 @@ namespace atlas.Servers
                 Program.Log(ctx, msg);
                 return Response.BadRequest(msg, !ctx.IsGemini);
             }
-            if (ctx.Capsule.MaxUploadSize <= size || location.MaxUploadSize <= size)
+
+            if(!location.AllowFileUploads)
             {
-                var msg = $"{size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}";
+                var msg = $"Uploads not allowed here";
+                Program.Log(ctx, msg);
+                return Response.BadRequest(msg, !ctx.IsGemini);
+            }
+
+            if (ctx.Capsule.MaxUploadSize < size)
+            {
+                var msg = $"{size} exceeds max upload size of {location.MaxUploadSize}";
                 Program.Log(ctx, msg);
                 return Response.BadRequest(msg, !ctx.IsGemini);
             }

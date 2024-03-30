@@ -35,10 +35,7 @@ namespace atlas.Servers.Gemini
                 }
             };
 
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
-            {
-                NoDelay = true
-            };
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
             Socket.Bind(new IPEndPoint(IPAddress.Any, Program.Cfg.GeminiPort));
             Socket.Listen();
         }

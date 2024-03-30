@@ -1,39 +1,48 @@
 {
   "SlowMode": true,
+  "SpartanPort": 3000,
   "GeminiPort": 1965,
-  "SpartanPort": 300,
   "Capsules": {
-    "her.st": {
-      "AbsoluteTlsCertPath": "/srv/gemini/her.st/her.st.pfx",
-      "AbsoluteRootPath": "/srv/gemini/her.st/",
-      "FQDN": "her.st",
-      "MaxUploadSize": 4194304,
+    "localhost": {
+      "AbsoluteTlsCertPath": "/srv/gemini/localhost/localhost.pfx",
+      "AbsoluteRootPath": "/srv/gemini/localhost/",
+      "FQDN": "localhost",
       "Index": "index.gmi",
+      "MaxUploadSize": 4194304,
       "Locations": [
         {
           "Index": "index.gmi",
-          "AbsoluteRootPath": "/srv/gemini/her.st/"
+          "AbsoluteRootPath": "/srv/gemini/localhost/",
+          "DefaultMimeType": "text/gemini",
+          "AllowedMimeTypes": {}
         },
         {
           "Index": "index.gmi",
           "DirectoryListing": true,
-          "AbsoluteRootPath": "/srv/gemini/her.st/pages/"
+          "AbsoluteRootPath": "/srv/gemini/localhost/pages/",
+          "DefaultMimeType": "text/gemini",
+          "AllowedMimeTypes": {}
         },
         {
           "Index": "index.gmi",
           "DirectoryListing": true,
-          "AbsoluteRootPath": "/srv/gemini/her.st/blog/"
+          "AbsoluteRootPath": "/srv/gemini/localhost/blog/",
+          "DefaultMimeType": "text/gemini",
+          "AllowedMimeTypes": {}
         },
         {
-          "CGI": true,
           "Index": "script.csx",
-          "AbsoluteRootPath": "/srv/gemini/her.st/cgi/"
+          "CGI": true,
+          "AbsoluteRootPath": "/srv/gemini/localhost/cgi/",
+          "DefaultMimeType": "text/gemini",
+          "AllowedMimeTypes": {}
         },
         {
           "Index": "index.gmi",
           "DirectoryListing": true,
-          "AbsoluteRootPath": "/srv/gemini/her.st/files/",
+          "AbsoluteRootPath": "/srv/gemini/localhost/files/",
           "AllowFileUploads": true,
+          "DefaultMimeType": "text/gemini",
           "AllowedMimeTypes": {
             "text/*": {
               "MaxSizeBytes": 1048576
