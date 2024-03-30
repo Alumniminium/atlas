@@ -3,7 +3,7 @@
 *the launch rocket of the gemini capsule*
 
 * C#
-* net7.0
+* net8.0
 * zero dependencies
 * Linux and Windows
 * x86, x64 and ARM
