@@ -8,9 +8,9 @@ using atlas.Servers.Gemini;
 
 namespace atlas.Servers
 {
-    public class DownloadProcessor
+    public class GenericServer
     {
-        public static async ValueTask<Response> Process(Context ctx)
+        public static async ValueTask<Response> ProcessRequest(Context ctx)
         {
             Statistics.AddRequest(ctx);
 
@@ -108,8 +108,10 @@ namespace atlas.Servers
             var ext = Path.GetExtension(ctx.Request);
             var mimeType = MimeMap.GetMimeType(ext, location.DefaultMimeType);
             var data = await File.ReadAllBytesAsync(ctx.Request).ConfigureAwait(false);
+            var time = DateTime.UtcNow - ctx.RequestStart;
+            data = Encoding.UTF8.GetBytes(Util.ReplaceTokens(Encoding.UTF8.GetString(data), ctx));
 
-            Program.Log(ctx, $"{data.Length / 1024f:0.00}kb of {mimeType}");
+            Program.Log(ctx, $"{data.Length / 1024f:0.00}kb of {mimeType} - in {time.TotalMilliseconds:0.00}ms");
             return Response.Ok(data.AsMemory(), mimeType, !ctx.IsGemini);
         }
 
@@ -142,7 +144,7 @@ namespace atlas.Servers
             // return Response.Ok(Encoding.UTF8.GetBytes(payload).AsMemory());
         }
 
-        public static async ValueTask<Response> UploadFile(Context ctx, string path, Uri pathUri, string mimeType, int size)
+        public static async ValueTask<Response> ProcessFileUpload(Context ctx, string path, Uri pathUri, string mimeType, int size)
         {
             if (size > ctx.Capsule.MaxUploadSize)
                 return Response.BadRequest($"Payload exceeds limit of {ctx.Capsule.MaxUploadSize} bytes", !ctx.IsGemini);

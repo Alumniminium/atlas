@@ -11,11 +11,12 @@
 ## Features
 
 * analythics
+* built in special tokens(*1)
 * server side animations on supported clients (eg. Lagrange)
 * gemini:// with titan:// file uploads
 * automatic certificate generation if none specified
 * spartan:// file uploads and downloads
-* CGI interface compatible with [jetforce](https://github.com/michael-lazar/jetforce) 
+* CGI interface compatible with [jetforce](https://github.com/michael-lazar/jetforce)
 * CGI streaming (for things like gemini://chat.mozz.us/)
 * vhosts
 * directory listing
@@ -25,12 +26,23 @@
 * tsv Mimetype map
 * Docker Support
 
-# Atlas Statistics
+## Built-in Special Tokens
+Token | Replaced With |
+:---: | :--- |
+%%{sub}%% | Gemini: Subject Name of the Client Cert - if any. Spartan: Spartan |
+%%{host}%% | FQDN - eg: her.st |
+%%{path}%% | requested path - eg: /index.gmi |
+%%{scheme}%% | protocol of request - eg: spartan / gemini |
+%%{date}%% | YYYY-MM-DD - eg: 2024-03-30 |
+%%{time}%% | HH:mm:ss - eg: 21:04:25 |
+%%{datetime}%% | YYYY-MM-DD HH-mm-ss - eg: 2024-03-30 21:04:25 |
+%%{rendertime}%% | Milliseconds - eg: 0.59 |
+
+## Atlas Statistics
 
 gemini://yourserver.com/atlas.stats
 
 ![Stats Screenshot](/stats.webp?raw=true "Stats screenshot")
-
 
 ## Roadmap (in no particular order):
 

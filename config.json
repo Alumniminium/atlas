@@ -1,5 +1,5 @@
 {
-  "SlowMode": true,
+  "SlowMode": false,
   "SpartanPort": 3000,
   "GeminiPort": 1965,
   "Capsules": {

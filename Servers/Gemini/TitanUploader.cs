@@ -28,7 +28,7 @@ public static async ValueTask<Response> Process(GeminiCtx ctx)
             }
 
             return int.TryParse(strSizeBytes, out var size)
-                ? await DownloadProcessor.UploadFile(ctx, path, pathUri, mimeType, size).ConfigureAwait(false)
+                ? await GenericServer.ProcessFileUpload(ctx, path, pathUri, mimeType, size).ConfigureAwait(false)
                 : Response.BadRequest("Invalid Size: " + strSizeBytes);
         }
     }

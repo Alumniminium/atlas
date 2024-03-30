@@ -11,7 +11,7 @@ namespace atlas.Servers.Gemini
         public string CertSubject => Certificate.Subject.Replace("CN=", "", true, System.Globalization.CultureInfo.InvariantCulture);
         public string CertThumbprint => Certificate.Thumbprint;
         public bool IsSelfSignedCert;
-        public bool IsValidCert => DateTime.Now < Certificate.NotAfter && DateTime.Now > Certificate.NotBefore;
+        public bool IsValidCert => DateTime.UtcNow < Certificate.NotAfter.ToUniversalTime() && DateTime.UtcNow > Certificate.NotBefore.ToUniversalTime();
         public bool IsTrustedCert => Certificate.Verify();
         public SslStream SslStream;
         

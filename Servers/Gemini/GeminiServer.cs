@@ -131,7 +131,7 @@ namespace atlas.Servers.Gemini
                 switch (ctx.Uri.Scheme)
                 {
                     case "gemini":
-                        response = await DownloadProcessor.Process(ctx).ConfigureAwait(false);
+                        response = await GenericServer.ProcessRequest(ctx).ConfigureAwait(false);
                         break;
                     case "titan":
                         response = await UploadProcessor.Process(ctx).ConfigureAwait(false);

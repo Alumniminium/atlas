@@ -19,6 +19,7 @@ namespace atlas.Servers
         public Uri Uri;
         public string Request = string.Empty;
         public string IP => Socket.RemoteEndPoint.ToString().Split(':')[0];
+        internal DateTime RequestStart;
 
         public Context(Socket socket, int bufferSize)
         {
@@ -26,6 +27,7 @@ namespace atlas.Servers
             Reader = new (new NetworkStream(socket), Encoding.UTF8);
             Buffer = new byte[bufferSize];
             Writer = new BinaryWriter(new NetworkStream(socket));
+            RequestStart = DateTime.UtcNow;
         }
     }
 }

@@ -47,7 +47,7 @@ namespace atlas.Servers.Spartan
 
                 ctx.Uri = new Uri(ctx.Request);
 
-                var response = ctx.PayloadSize > 0 ? await ProcessUploadRequest(ctx).ConfigureAwait(false) : await DownloadProcessor.Process(ctx).ConfigureAwait(false);
+                var response = ctx.PayloadSize > 0 ? await ProcessUploadRequest(ctx).ConfigureAwait(false) : await GenericServer.ProcessRequest(ctx).ConfigureAwait(false);
                 Statistics.AddResponse(response);
                 ctx.Writer.Write(response.Data.Span);
             }
@@ -59,7 +59,7 @@ namespace atlas.Servers.Spartan
         {
             var req = await ctx.Reader.ReadLineAsync().ConfigureAwait(false);
 
-            var parts = req.Trim().Split(' ');
+            var parts = req.Trim().Split(new []{' ', '\n', '\r'}, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var host = parts[0];
             var path = parts[1];
             ctx.PayloadSize = int.Parse(parts[2]);
@@ -74,7 +74,7 @@ namespace atlas.Servers.Spartan
             var absoluteDestinationPath = Path.Combine(ctx.Capsule.AbsoluteRootPath, ctx.Uri.AbsolutePath[1..]);
             var mimeType = MimeMap.GetMimeType(Path.GetExtension(ctx.Uri.AbsolutePath));
 
-            return await DownloadProcessor.UploadFile(ctx, absoluteDestinationPath, ctx.Uri, mimeType, ctx.PayloadSize).ConfigureAwait(false);
+            return await GenericServer.ProcessFileUpload(ctx, absoluteDestinationPath, ctx.Uri, mimeType, ctx.PayloadSize).ConfigureAwait(false);
         }
 
         public static void CloseConnection(Context ctx)
