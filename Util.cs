@@ -40,7 +40,17 @@ namespace atlas
         {
             Dictionary<string, Func<string>> tokens = new()
             {
-                { "%%{sub}%%", () => ctx is GeminiCtx ? (ctx as GeminiCtx).Certificate?.Subject.Replace("CN=","") : "Spartan"},
+                { "%%{sub}%%", () => 
+                    {
+                        if (ctx is GeminiCtx gctx) 
+                        {
+                            var name = gctx.Certificate?.Subject.Replace("CN=","");
+                            return string.IsNullOrEmpty(name) ? "Anon" : name;
+                        }
+                        else
+                            return "Spartan";
+                    } 
+                },
                 { "%%{host}%%", () => ctx.Uri?.Host },
                 { "%%{path}%%", () => ctx.Uri?.AbsolutePath },
                 { "%%{scheme}%%", () => ctx.Uri?.Scheme },

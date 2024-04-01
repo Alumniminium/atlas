@@ -30,7 +30,7 @@ the launch rocket of the gemini capsule
 
 Token | Replaced With |
 :---: | :--- |
-%%{sub}%% | Gemini: Subject Name of the Client Cert (without CN=) - if any. Spartan: Spartan |
+%%{sub}%% | Gemini: Subject Name of the Client Cert (without CN=) - if any - otherwise 'Anon'. For Spartan it always returns 'Spartan' |
 %%{host}%% | FQDN - eg: her.st |
 %%{path}%% | requested path - eg: /index.gmi |
 %%{scheme}%% | protocol of request - eg: spartan / gemini |

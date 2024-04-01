@@ -160,6 +160,8 @@ namespace atlas.Servers.Gemini
                 if (i == 0)
                 {
                     await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes(line));
+                    timeCount += 32;
+                    await Task.Delay(32);
                     continue;
                 }
                 else if (line.StartsWith('#') && timeCount < maxTime)
