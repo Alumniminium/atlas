@@ -11,7 +11,7 @@ the launch rocket of the gemini capsule
 * Docker Support
 * Automatic certificate generation
 * Analythics
-* Server-side animations on supported clients (eg. Lagrange)
+* Server-side animations on supported clients (eg. Lagrange) **DEMO: [gemini://her.st/](gemini://her.st/)**
 * Built-in special tokens (see below)
 * vhosts
   * Per Location Configuration
