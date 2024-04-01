@@ -62,7 +62,7 @@ You can always access Atlas Stats on the following URL: gemini://yourserver.tld/
 ![Stats Screenshot](/stats-1.jpg?raw=true "Stats screenshot")
 ![Stats Screenshot](/stats-2.jpg?raw=true "Stats screenshot")
 
-## Roadmap (in no particular order):
+## Roadmap (in no particular order)
 
 * FastCGI
 * Use single Docker volume
@@ -71,6 +71,7 @@ You can always access Atlas Stats on the following URL: gemini://yourserver.tld/
 * rate limiting
 * proper networking with SocketAsyncEventArgs
 * Inline Server Sided Scripts using `%%{exec scriptname}%%`
+* Assign "Owner" Cert in Capsule config to allow editing of files via TITAN:// in-client
 
 ### Sample configuration with all options
 
