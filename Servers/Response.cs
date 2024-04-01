@@ -1,7 +1,6 @@
 using System;
 using System.Text;
 using atlas.Servers.Gemini;
-using atlas.Servers.Spartan;
 
 namespace atlas.Servers
 {
@@ -41,16 +40,16 @@ namespace atlas.Servers
                         : new($"{(int)GeminiCode.Success} {mimeType}\r\n", spartan);
 
         public static Response NotFound(string message, bool spartan = false) => spartan
-                        ? (new($"{(int)SpartanCode.ServerError} {message}.\r\n",spartan))
-                        : (new($"{(int)GeminiCode.NotFound} {message}.\r\n",spartan));
+                        ? new($"{(int)SpartanCode.ServerError} {message}.\r\n", spartan)
+                        : new($"{(int)GeminiCode.NotFound} {message}.\r\n", spartan);
 
         public static Response BadRequest(string reason, bool spartan = false) => spartan
-                        ? (new($"{(int)SpartanCode.ServerError} {reason}\r\n",spartan))
-                        : (new($"{(int)GeminiCode.BadRequest} {reason}\r\n",spartan));
+                        ? new($"{(int)SpartanCode.ServerError} {reason}\r\n", spartan)
+                        : new($"{(int)GeminiCode.BadRequest} {reason}\r\n", spartan);
 
         public static Response Redirect(string target, bool spartan = false) => spartan
-                        ? (new($"{(int)SpartanCode.Redirect} {target}\r\n",spartan))
-                        : (new($"{(int)GeminiCode.RedirectPerm} gemini://{target}\r\n",spartan));
+                        ? new($"{(int)SpartanCode.Redirect} {target}\r\n", spartan)
+                        : new($"{(int)GeminiCode.RedirectPerm} gemini://{target}\r\n", spartan);
 
         public static Response ProxyDenied() => new("53 \r\n"u8);
         public static Response ProxyError() => new("43 \r\n"u8);

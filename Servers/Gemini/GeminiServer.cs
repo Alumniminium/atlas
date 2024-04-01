@@ -65,25 +65,26 @@ namespace atlas.Servers.Gemini
         {
             try
             {
-                var tlsStream = ctx.SslStream;
-                TlsOptions.RemoteCertificateValidationCallback = (_, shittyCert, chain, error) =>
+                TlsOptions.RemoteCertificateValidationCallback = (_, ClientCertificate, chain, error) =>
                 {
-                    if (shittyCert == null)
+                    if (ClientCertificate == null)
                         return true;
 
                     ctx.IsSelfSignedCert = chain.ChainStatus.Any(x => x.Status == X509ChainStatusFlags.UntrustedRoot);
+                    ctx.Certificate = new X509Certificate2(ClientCertificate);
 
-                    var cert = new X509Certificate2(shittyCert);
-                    ctx.Certificate = cert;
+                    if (ctx.Certificate.NotBefore.ToUniversalTime() > DateTime.UtcNow || ctx.Certificate.NotAfter.ToUniversalTime() < DateTime.UtcNow)
+                        return false;
+
                     return true;
                 };
 
-                await tlsStream.AuthenticateAsServerAsync(TlsOptions).ConfigureAwait(false);
+                await ctx.SslStream.AuthenticateAsServerAsync(TlsOptions).ConfigureAwait(false);
 
-                if (!Program.Cfg.Capsules.TryGetValue(tlsStream.TargetHostName, out ctx.Capsule))
+                if (!Program.Cfg.Capsules.TryGetValue(ctx.SslStream.TargetHostName, out ctx.Capsule))
                 {
-                    ctx.Capsule = new Data.Capsule() { FQDN = tlsStream.TargetHostName };
-                    Program.Log(ctx, $"'{tlsStream.TargetHostName}' not configured.");
+                    ctx.Capsule = new Data.Capsule() { FQDN = ctx.SslStream.TargetHostName };
+                    Program.Log(ctx, $"'{ctx.SslStream.TargetHostName}' not configured.");
                     await ctx.SslStream.WriteAsync(Response.ProxyDenied());
                     return false;
                 }
@@ -139,7 +140,7 @@ namespace atlas.Servers.Gemini
                 }
 
                 Statistics.AddResponse(response);
-                if (Program.Cfg.SlowMode && response.MimeType == "text/gemini")
+                if (Program.Cfg.SlowMode && Program.Cfg.SlowModeMaxMilliSeconds > 0 && response.MimeType == "text/gemini")
                     await AnimatedResponse(ctx, response);
                 else
                     await ctx.SslStream.WriteAsync(response);
@@ -161,7 +162,7 @@ namespace atlas.Servers.Gemini
                     await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes(line));
                     continue;
                 }
-                else if (line.StartsWith("#") && timeCount < maxTime)
+                else if (line.StartsWith('#') && timeCount < maxTime)
                 {
                     var bytes = Encoding.UTF8.GetBytes(line);
                     foreach (var b in bytes)
@@ -184,10 +185,11 @@ namespace atlas.Servers.Gemini
 
         public static void CloseConnection(Context ctx)
         {
-            Program.Log(ctx, "complete");
-            ctx?.Socket?.Close();
-            ctx?.Reader?.Dispose();
-            ctx?.Socket?.Dispose();
+            try {
+                ctx?.Socket?.Dispose();
+            }
+            catch (Exception e) { Console.WriteLine(e); }
+            finally { Program.Log(ctx, "complete"); }
         }
     }
 }

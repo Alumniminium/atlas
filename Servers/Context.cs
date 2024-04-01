@@ -11,14 +11,14 @@ namespace atlas.Servers
     {
         public byte[] Buffer;
         public bool IsGemini => this is GeminiCtx;
-        public bool IsSpartan => this is not GeminiCtx;
+        public bool IsSpartan => !IsGemini;
         public Socket Socket;
         public BinaryWriter Writer;
         public StreamReader Reader;
         public Capsule Capsule;
         public Uri Uri;
         public string Request = string.Empty;
-        public string IP => Socket.RemoteEndPoint.ToString().Split(':')[0];
+        public string ClientIP => Socket.RemoteEndPoint.ToString().Split(':')[0];
         internal DateTime RequestStart;
 
         public Context(Socket socket, int bufferSize)

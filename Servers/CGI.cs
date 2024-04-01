@@ -25,8 +25,8 @@ namespace atlas.Servers
             info.EnvironmentVariables.Add("PATH_INFO", PATHINFO);
             info.EnvironmentVariables.Add("QUERY_STRING", ctx.Uri.Query);
             info.EnvironmentVariables.Add("SERVER_NAME", ctx.Capsule.FQDN);
-            info.EnvironmentVariables.Add("REMOTE_HOST", ctx.IP);
-            info.EnvironmentVariables.Add("REMOTE_ADDR", ctx.IP);
+            info.EnvironmentVariables.Add("REMOTE_HOST", ctx.ClientIP);
+            info.EnvironmentVariables.Add("REMOTE_ADDR", ctx.ClientIP);
 
             if (ctx is GeminiCtx gCtx)
             {

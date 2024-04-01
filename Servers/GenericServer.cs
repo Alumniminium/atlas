@@ -14,6 +14,9 @@ namespace atlas.Servers
         {
             Statistics.AddRequest(ctx);
 
+            if (ctx.Request.EndsWith("/atlas.stats"))
+                return Statistics.Get();
+
             if (ctx.Request.Contains(".."))
             {
                 var msg = "invalid request (..)";
@@ -49,7 +52,7 @@ namespace atlas.Servers
                 if (location.DirectoryListing)
                 {
                     Program.Log(ctx, $"Create DirectoryListing");
-                    var gmi = CreateDirectoryListing(ctx, location);
+                    var gmi = Util.CreateDirectoryListing(ctx, location);
                     Program.Log(ctx, $"DirectoryListing -> {gmi.Length} bytes");
                     return Response.Ok(Encoding.UTF8.GetBytes(gmi).AsMemory(), "text/gemini", !ctx.IsGemini);
                 }
@@ -95,9 +98,6 @@ namespace atlas.Servers
                 return Response.NotFound("nice try");
             }
 
-            if (ctx.Request.EndsWith("/atlas.stats"))
-                return Statistics.Get();
-
             if (!File.Exists(ctx.Request))
             {
                 var msg = $"Not Found: {ctx.Request}";
@@ -109,7 +109,9 @@ namespace atlas.Servers
             var mimeType = MimeMap.GetMimeType(ext, location.DefaultMimeType);
             var data = await File.ReadAllBytesAsync(ctx.Request).ConfigureAwait(false);
             var time = DateTime.UtcNow - ctx.RequestStart;
-            data = Encoding.UTF8.GetBytes(Util.ReplaceTokens(Encoding.UTF8.GetString(data), ctx));
+
+            if (mimeType == "text/gemtext" || mimeType == "text/gemini" || mimeType == "text/plain")    
+                data = Encoding.UTF8.GetBytes(Util.ReplaceTokens(Encoding.UTF8.GetString(data), ctx));
 
             Program.Log(ctx, $"{data.Length / 1024f:0.00}kb of {mimeType} - in {time.TotalMilliseconds:0.00}ms");
             return Response.Ok(data.AsMemory(), mimeType, !ctx.IsGemini);
@@ -197,20 +199,6 @@ namespace atlas.Servers
                 Program.Log(ctx, $"received {fileLen}/{size}");
             }
             return data;
-        }
-
-        public static string CreateDirectoryListing(Context ctx, Location loc)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("### LAST  MODIFIED   |  SIZE  | NAME");
-
-            foreach (var file in Directory.GetFiles(loc.AbsoluteRootPath))
-            {
-                var fi = new FileInfo(file);
-                sb.AppendLine($"=> {ctx.Uri.Scheme}://{ctx.Capsule.FQDN}/{loc.AbsoluteRootPath.Replace(ctx.Capsule.AbsoluteRootPath, "")}/{Path.GetFileName(file)} {Util.CenterString(fi.CreationTimeUtc.ToString("yyyy-MM-dd"), 12)} | {Util.CenterString($"{fi.Length / 1024 / 1024f:0.00}mb", 10)} | {Path.GetFileName(file)}");
-            }
-
-            return sb.ToString();
         }
     }
 }
