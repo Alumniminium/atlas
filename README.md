@@ -67,7 +67,7 @@ You can always access Atlas Stats on the following URL: gemini://yourserver.tld/
 * FastCGI
 * Use single Docker volume
 * Caching
-* ~~certificate validation~~
+* ~~certificate validation~~ **DONE IN v0.3 (April 1st 2024)**
 * rate limiting
 * proper networking with SocketAsyncEventArgs
 * Inline Server Sided Scripts using `%%{exec scriptname}%%`
