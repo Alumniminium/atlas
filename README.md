@@ -59,7 +59,8 @@ Render Time: %%{rendertime}%% | Render Time: 4564.80 |
 
 You can always access Atlas Stats on the following URL: gemini://yourserver.tld/atlas.stats
 
-![Stats Screenshot](/stats.webp?raw=true "Stats screenshot")
+![Stats Screenshot](/stats-1.jpg?raw=true "Stats screenshot")
+![Stats Screenshot](/stats-2.jpg?raw=true "Stats screenshot")
 
 ## Roadmap (in no particular order):
 
