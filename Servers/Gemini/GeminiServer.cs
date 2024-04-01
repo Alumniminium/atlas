@@ -73,9 +73,11 @@ namespace atlas.Servers.Gemini
                     ctx.IsSelfSignedCert = chain.ChainStatus.Any(x => x.Status == X509ChainStatusFlags.UntrustedRoot);
                     ctx.Certificate = new X509Certificate2(ClientCertificate);
 
-                    // Allow 5 minutes of clock skew for client cert
-                    // This is to account for clock skew between client and server
-                    if (ctx.Certificate.NotBefore.ToUniversalTime().AddMinutes(5) > DateTime.UtcNow || ctx.Certificate.NotAfter.ToUniversalTime().AddMinutes(5) < DateTime.UtcNow)
+                    // Allow 5 minutes of clock skew
+                    var notBeforeMinutesDelta = (ctx.Certificate.NotBefore.ToUniversalTime() - DateTime.UtcNow).TotalMinutes;
+                    var notAfterMinutesDelta = (DateTime.UtcNow - ctx.Certificate.NotAfter.ToUniversalTime()).TotalMinutes;
+
+                    if (notBeforeMinutesDelta > 5 || notAfterMinutesDelta > 5)
                         return false;
 
                     return true;
