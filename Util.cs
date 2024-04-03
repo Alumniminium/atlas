@@ -63,7 +63,9 @@ namespace atlas
 
             foreach (var token in tokens)
                 input = input.Replace(token.Key, token.Value());
-
+            
+            input = input.Trim();
+            
             return input;
         }
     }
