@@ -48,48 +48,16 @@ namespace atlas.Servers
             var fileName = Path.GetFileName(ctx.Uri.AbsolutePath);
             if (string.IsNullOrEmpty(fileName))
             {
-                Program.Log(ctx, $"No filename for request");
                 if (location.DirectoryListing)
-                {
-                    Program.Log(ctx, $"Create DirectoryListing");
-                    var gmi = Util.CreateDirectoryListing(ctx, location);
-                    Program.Log(ctx, $"DirectoryListing -> {gmi.Length} bytes");
-                    return Response.Ok(Encoding.UTF8.GetBytes(gmi).AsMemory(), "text/gemini", !ctx.IsGemini);
-                }
-                else
-                {
-                    Program.Log(ctx, $"Adding {location.Index} to request");
-                    ctx.Request = Path.Combine(ctx.Request, location.Index);
-                    ctx.Uri = new Uri(ctx.Request);
-                }
+                    return ServeDirectoryListing(ctx, location);
+
+                Program.Log(ctx, $"Adding {location.Index} to request");
+                ctx.Request = Path.Combine(ctx.Request, location.Index);
+                ctx.Uri = new Uri(ctx.Request);
             }
 
             if (location.CGI)
-            {
-                Program.Log(ctx, "Invoking CGI");
-
-                var cgiParts = ctx.Uri.AbsolutePath.Replace("/cgi/", "").Split('/');
-                var file = cgiParts[0];
-                var PATH_INFO = cgiParts.Length > 1 ? string.Join('/', cgiParts[1..]) : "/";
-
-                var counter = 0;
-                foreach (var line in CGI.ExecuteScript(ctx, file, location.AbsoluteRootPath, PATH_INFO))
-                {
-                    var l = line;
-
-                    if (!l.EndsWith("\r\n"))
-                    {
-                        if (counter == 0)
-                            l += "\r\n";
-                        else
-                            l += '\n';
-                    }
-                    ctx.Writer.Write(Encoding.UTF8.GetBytes(l));
-                    counter++;
-                }
-
-                return new("", ctx.IsSpartan);
-            }
+                return await ServeCGI(ctx, location).ConfigureAwait(false);
 
             ctx.Request = Path.Combine(location.AbsoluteRootPath, Path.GetFileName(ctx.Uri.AbsolutePath));
             if (ctx.Request == ctx.Capsule.AbsoluteTlsCertPath)
@@ -105,54 +73,18 @@ namespace atlas.Servers
                 return Response.NotFound(msg, !ctx.IsGemini);
             }
 
-            var ext = Path.GetExtension(ctx.Request);
-            var mimeType = MimeMap.GetMimeType(ext, location.DefaultMimeType);
-            var data = await File.ReadAllBytesAsync(ctx.Request).ConfigureAwait(false);
-            var time = DateTime.UtcNow - ctx.RequestStart;
-
-            if (mimeType == "text/gemtext" || mimeType == "text/gemini" || mimeType == "text/plain")    
-                data = Encoding.UTF8.GetBytes(Util.ReplaceTokens(Encoding.UTF8.GetString(data), ctx));
-
-            Program.Log(ctx, $"{data.Length / 1024f:0.00}kb of {mimeType} - in {time.TotalMilliseconds:0.00}ms");
-            return Response.Ok(data.AsMemory(), mimeType, !ctx.IsGemini);
+            return await ServeFile(ctx, location).ConfigureAwait(false);
         }
 
         private static Response Proxy(Context ctx) => Response.ProxyDenied();
 
         public static async ValueTask<Response> ProcessFileUpload(Context ctx, string path, Uri pathUri, string mimeType, int size)
         {
-            if (size > ctx.Capsule.MaxUploadSize)
-                return Response.BadRequest($"Payload exceeds limit of {ctx.Capsule.MaxUploadSize} bytes", !ctx.IsGemini);
-
             var location = ctx.Capsule.GetLocation(pathUri);
 
-            if (string.IsNullOrEmpty(path))
-            {
-                var msg = $"{ctx.Request} missing location or path";
-                Program.Log(ctx, msg);
-                return Response.BadRequest(msg, !ctx.IsGemini);
-            }
-
-            if(!location.AllowFileUploads)
-            {
-                var msg = $"Uploads not allowed here";
-                Program.Log(ctx, msg);
-                return Response.BadRequest(msg, !ctx.IsGemini);
-            }
-
-            if (ctx.Capsule.MaxUploadSize < size)
-            {
-                var msg = $"{size} exceeds max upload size of {location.MaxUploadSize}";
-                Program.Log(ctx, msg);
-                return Response.BadRequest(msg, !ctx.IsGemini);
-            }
-
-            if (!location.IsAllowedMimeType(mimeType))
-            {
-                var msg = $"{mimeType} not allowed at {location.AbsoluteRootPath}";
-                Program.Log(ctx, msg);
-                return Response.BadRequest(msg, !ctx.IsGemini);
-            }
+            var validation = ValidateUpload(ctx, location, path, mimeType, size);
+            if (validation != null)
+                return validation;
 
             var data = await ReceivePayload(ctx, size).ConfigureAwait(false);
             await File.WriteAllBytesAsync(path, data.ToArray());
@@ -170,6 +102,81 @@ namespace atlas.Servers
                 Program.Log(ctx, $"received {fileLen}/{size}");
             }
             return data;
+        }
+
+        private static Response ServeDirectoryListing(Context ctx, Location location)
+        {
+            Program.Log(ctx, "Creating directory listing");
+            var gmi = Util.CreateDirectoryListing(ctx, location);
+            Program.Log(ctx, $"DirectoryListing -> {gmi.Length} bytes");
+            return Response.Ok(Encoding.UTF8.GetBytes(gmi).AsMemory(), "text/gemini", !ctx.IsGemini);
+        }
+
+        private static async ValueTask<Response> ServeCGI(Context ctx, Location location)
+        {
+            Program.Log(ctx, "Invoking CGI");
+
+            var cgiParts = ctx.Uri.AbsolutePath.Replace("/cgi/", "").Split('/');
+            var file = cgiParts[0];
+            var pathInfo = cgiParts.Length > 1 ? string.Join('/', cgiParts[1..]) : "/";
+
+            var isFirstLine = true;
+            foreach (var line in CGI.ExecuteScript(ctx, file, location.AbsoluteRootPath, pathInfo))
+            {
+                var lineEnding = isFirstLine ? "\r\n" : "\n";
+                var output = line.EndsWith("\r\n") ? line : line + lineEnding;
+                ctx.Writer.Write(Encoding.UTF8.GetBytes(output));
+                isFirstLine = false;
+            }
+
+            return new("", ctx.IsSpartan);
+        }
+
+        private static async ValueTask<Response> ServeFile(Context ctx, Location location)
+        {
+            var ext = Path.GetExtension(ctx.Request);
+            var mimeType = MimeMap.GetMimeType(ext, location.DefaultMimeType);
+            var data = await File.ReadAllBytesAsync(ctx.Request).ConfigureAwait(false);
+            var time = DateTime.UtcNow - ctx.RequestStart;
+
+            if (mimeType.StartsWith("text/"))
+                data = Encoding.UTF8.GetBytes(Util.ReplaceTokens(Encoding.UTF8.GetString(data), ctx));
+
+            Program.Log(ctx, $"{data.Length / 1024f:0.00}kb of {mimeType} - in {time.TotalMilliseconds:0.00}ms");
+            return Response.Ok(data.AsMemory(), mimeType, !ctx.IsGemini);
+        }
+
+        private static Response ValidateUpload(Context ctx, Location location, string path, string mimeType, int size)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                var msg = $"{ctx.Request} missing location or path";
+                Program.Log(ctx, msg);
+                return Response.BadRequest(msg, !ctx.IsGemini);
+            }
+
+            if (!location.AllowFileUploads)
+            {
+                var msg = "Uploads not allowed here";
+                Program.Log(ctx, msg);
+                return Response.BadRequest(msg, !ctx.IsGemini);
+            }
+
+            if (size > ctx.Capsule.MaxUploadSize)
+            {
+                var msg = $"{size} exceeds max upload size of {ctx.Capsule.MaxUploadSize}";
+                Program.Log(ctx, msg);
+                return Response.BadRequest(msg, !ctx.IsGemini);
+            }
+
+            if (!location.IsAllowedMimeType(mimeType))
+            {
+                var msg = $"{mimeType} not allowed at {location.AbsoluteRootPath}";
+                Program.Log(ctx, msg);
+                return Response.BadRequest(msg, !ctx.IsGemini);
+            }
+
+            return null;
         }
     }
 }
