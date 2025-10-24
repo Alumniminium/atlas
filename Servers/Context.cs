@@ -17,7 +17,14 @@ namespace atlas.Servers
         public StreamReader Reader;
         public Capsule Capsule;
         public Uri Uri;
-        public string Request = string.Empty;
+
+        private string _request = string.Empty;
+        public string Request
+        {
+            get => _request;
+            set => _request = value?.Replace("\r\n", "").Trim() ?? string.Empty;
+        }
+
         public string ClientIP => Socket.RemoteEndPoint.ToString().Split(':')[0];
         internal DateTime RequestStart;
 

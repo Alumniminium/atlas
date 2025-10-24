@@ -15,12 +15,12 @@ namespace atlas.Servers
             var info = new ProcessStartInfo();
 
             info.EnvironmentVariables.Clear();
-            info.EnvironmentVariables.Add("DOTNET_CLI_HOME", "/home/trbl/.dotnet");
+            info.EnvironmentVariables.Add("DOTNET_CLI_HOME", Environment.GetEnvironmentVariable("DOTNET_CLI_HOME") ?? "/tmp/.dotnet");
             info.EnvironmentVariables.Add("GATEWAY_INTERFACE", "CGI/1.1");
             info.EnvironmentVariables.Add("SERVER_PROTOCOL", $"{(ctx.IsGemini ? "GEMINI" : "SPARTAN")}");
             info.EnvironmentVariables.Add("SERVER_PORT", $"{(ctx.IsGemini ? Program.Cfg.GeminiPort : Program.Cfg.SpartanPort)}");
             info.EnvironmentVariables.Add("SERVER_SOFTWARE", $"atlas/{Program.Version}");
-            info.EnvironmentVariables.Add("URL", ctx.Request.Replace("\r\n", ""));
+            info.EnvironmentVariables.Add("URL", ctx.Request);
             info.EnvironmentVariables.Add("SCRIPT_NAME", scriptName);
             info.EnvironmentVariables.Add("PATH_INFO", PATHINFO);
             info.EnvironmentVariables.Add("QUERY_STRING", ctx.Uri.Query);

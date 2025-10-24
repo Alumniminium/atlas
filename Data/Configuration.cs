@@ -12,8 +12,8 @@ namespace atlas.Data
     {
         public bool SlowMode { get; set; }
         public int SlowModeMaxMilliSeconds { get; set; }
-        public ushort SpartanPort { get; set; } = 300;
-        public ushort GeminiPort { get; set; } = 1965;
+        public ushort SpartanPort { get; set; } = Defaults.SpartanPort;
+        public ushort GeminiPort { get; set; } = Defaults.GeminiPort;
         public Dictionary<string, Capsule> Capsules { get; set; } = new();
 
         public static Configuration Load()
@@ -80,21 +80,21 @@ namespace atlas.Data
         {
             var Config = new Configuration()
             {
-                GeminiPort = 1965,
-                SpartanPort = (ushort)(Debugger.IsAttached ? 3000 : 300),
+                GeminiPort = Defaults.GeminiPort,
+                SpartanPort = (ushort)(Debugger.IsAttached ? 3000 : Defaults.SpartanPort),
                 Capsules = new()
                 {
                     [Environment.MachineName] = new Capsule()
                     {
                         FQDN = Environment.MachineName,
                         AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/",
-                        MaxUploadSize = 1024 * 1024 * 4,
-                        Index = "index.gmi",
+                        MaxUploadSize = Defaults.MaxUploadSize,
+                        Index = Defaults.IndexFile,
                         Locations = new()
                             {
                                 new Location()
                                 {
-                                    Index = "index.gmi",
+                                    Index = Defaults.IndexFile,
                                     AbsoluteRootPath = $"/srv/gemini/{Environment.MachineName}/",
                                 },
                                 new Location()

@@ -51,7 +51,7 @@ namespace atlas.Servers.Spartan
                 Statistics.AddResponse(response);
                 ctx.Writer.Write(response.Data.Span);
             }
-            catch (Exception e) { Console.WriteLine(e); }
+            catch (Exception e) { Program.LogError(ctx, e, "request processing"); }
             finally { CloseConnection(ctx); }
         }
 
