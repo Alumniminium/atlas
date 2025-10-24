@@ -37,7 +37,14 @@ namespace atlas
             if (string.IsNullOrWhiteSpace(ctx.Request))
                 Console.WriteLine($"[{ctx.Capsule?.FQDN}] [{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.ClientIP} -> {text}");
             else
-                Console.WriteLine($"[{ctx.Capsule?.FQDN}] [{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.ClientIP} -> {ctx.Request.Trim()} -> {text}");
+                Console.WriteLine($"[{ctx.Capsule?.FQDN}] [{(ctx.IsGemini ? "Gemini" : "Spartan")}] {ctx.ClientIP} -> {ctx.Request} -> {text}");
+        }
+
+        public static void LogError(Context ctx, Exception e, string action = "")
+        {
+            var prefix = string.IsNullOrEmpty(action) ? "Error" : $"Error during {action}";
+            Log(ctx, $"{prefix}: {e.Message}");
+            Console.WriteLine(e.StackTrace);
         }
     }
 }

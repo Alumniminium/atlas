@@ -74,13 +74,12 @@ namespace atlas.Servers.Gemini
                     ctx.Certificate = new X509Certificate2(ClientCertificate);
 
                     // Allow 5 minutes of clock skew
-                    var notBeforeMinutesDelta = (ctx.Certificate.NotBefore.ToUniversalTime() - DateTime.UtcNow).TotalMinutes;
-                    var notAfterMinutesDelta = (DateTime.UtcNow - ctx.Certificate.NotAfter.ToUniversalTime()).TotalMinutes;
+                    var now = DateTime.UtcNow;
+                    var skew = TimeSpan.FromMinutes(5);
+                    var notBefore = ctx.Certificate.NotBefore.ToUniversalTime();
+                    var notAfter = ctx.Certificate.NotAfter.ToUniversalTime();
 
-                    if (notBeforeMinutesDelta > 5 || notAfterMinutesDelta > 5)
-                        return false;
-
-                    return true;
+                    return notBefore - skew <= now && now <= notAfter + skew;
                 };
 
                 await ctx.SslStream.AuthenticateAsServerAsync(TlsOptions).ConfigureAwait(false);
@@ -106,7 +105,7 @@ namespace atlas.Servers.Gemini
             }
             catch (Exception e)
             {
-                Program.Log(ctx, "TLS HandShake aborted. Reason: " + e.Message);
+                Program.LogError(ctx, e, "TLS HandShake");
                 return false;
             }
             return true;
@@ -149,43 +148,39 @@ namespace atlas.Servers.Gemini
                 else
                     await ctx.SslStream.WriteAsync(response);
             }
-            catch (Exception e) { Console.WriteLine(e); }
+            catch (Exception e) { Program.LogError(ctx, e, "request processing"); }
             finally { CloseConnection(ctx); }
         }
 
         private static async ValueTask AnimatedResponse(GeminiCtx ctx, Response response)
         {
-            var lines = Encoding.UTF8.GetString(response.Data.ToArray()).Split('\n'); ;
+            var lines = Encoding.UTF8.GetString(response.Data.ToArray()).Split('\n');
             var timeCount = 0;
             var maxTime = Program.Cfg.SlowModeMaxMilliSeconds;
+
             for (int i = 0; i < lines.Length; i++)
             {
                 var line = lines[i] + '\n';
-                if (i == 0)
+                var isHeader = i == 0;
+                var isHeading = line.StartsWith('#');
+                var delay = isHeader ? 32 : 16;
+
+                if (isHeading && timeCount < maxTime)
+                {
+                    foreach (var b in Encoding.UTF8.GetBytes(line))
+                    {
+                        await ctx.SslStream.WriteAsync(new[] { b });
+                        timeCount += delay;
+                        await Task.Delay(delay);
+                    }
+                }
+                else
                 {
                     await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes(line));
-                    timeCount += 32;
-                    await Task.Delay(32);
-                    continue;
+                    timeCount += delay;
+                    if (timeCount < maxTime)
+                        await Task.Delay(delay);
                 }
-                else if (line.StartsWith('#') && timeCount < maxTime)
-                {
-                    var bytes = Encoding.UTF8.GetBytes(line);
-                    foreach (var b in bytes)
-                    {
-                        await ctx.SslStream.WriteAsync(new []{b});
-                        timeCount += 16;
-                        await Task.Delay(16);
-                    }
-                    await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes("\n"));
-                    continue;
-                }
-
-                await ctx.SslStream.WriteAsync(Encoding.UTF8.GetBytes(line));
-                timeCount += 16;
-
-                if (timeCount < maxTime)
-                    await Task.Delay(16);
             }
         }
 
@@ -194,7 +189,7 @@ namespace atlas.Servers.Gemini
             try {
                 ctx?.Socket?.Dispose();
             }
-            catch (Exception e) { Console.WriteLine(e); }
+            catch (Exception e) { Program.LogError(ctx, e, "connection cleanup"); }
             finally { Program.Log(ctx, "complete"); }
         }
     }

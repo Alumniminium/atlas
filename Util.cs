@@ -38,35 +38,30 @@ namespace atlas
 
         internal static string ReplaceTokens(string input, Context ctx)
         {
-            Dictionary<string, Func<string>> tokens = new()
-            {
-                { "%%{sub}%%", () => 
-                    {
-                        if (ctx is GeminiCtx gctx) 
-                        {
-                            var name = gctx.Certificate?.Subject.Replace("CN=","");
-                            return string.IsNullOrEmpty(name) ? "Anon" : name;
-                        }
-                        else
-                            return "Spartan";
-                    } 
-                },
-                { "%%{host}%%", () => ctx.Uri?.Host },
-                { "%%{path}%%", () => ctx.Uri?.AbsolutePath },
-                { "%%{scheme}%%", () => ctx.Uri?.Scheme },
-                { "%%{date}%%", () => DateTime.Now.ToString("yyyy-MM-dd") },
-                { "%%{time}%%", () => DateTime.Now.ToString("HH:mm:ss") },
-                { "%%{datetime}%%", () => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") },
-                { "%%{rendertime}%%", () => (DateTime.UtcNow - ctx.RequestStart).TotalMilliseconds.ToString("0.00")},
-                { "%%{ls}%%", () => CreateDirectoryListing(ctx, ctx.Capsule.GetLocation(ctx.Uri)) }
-            };
+            input = ReplaceToken(input, "%%{sub}%%", GetSubject(ctx));
+            input = ReplaceToken(input, "%%{host}%%", ctx.Uri?.Host);
+            input = ReplaceToken(input, "%%{path}%%", ctx.Uri?.AbsolutePath);
+            input = ReplaceToken(input, "%%{scheme}%%", ctx.Uri?.Scheme);
+            input = ReplaceToken(input, "%%{date}%%", DateTime.Now.ToString("yyyy-MM-dd"));
+            input = ReplaceToken(input, "%%{time}%%", DateTime.Now.ToString("HH:mm:ss"));
+            input = ReplaceToken(input, "%%{datetime}%%", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            input = ReplaceToken(input, "%%{rendertime}%%", (DateTime.UtcNow - ctx.RequestStart).TotalMilliseconds.ToString("0.00"));
+            input = ReplaceToken(input, "%%{ls}%%", CreateDirectoryListing(ctx, ctx.Capsule.GetLocation(ctx.Uri)));
 
-            foreach (var token in tokens)
-                input = input.Replace(token.Key, token.Value());
-            
-            input = input.Trim();
-            
-            return input;
+            return input.Trim();
+        }
+
+        private static string ReplaceToken(string input, string token, string value)
+            => input.Contains(token) ? input.Replace(token, value ?? string.Empty) : input;
+
+        private static string GetSubject(Context ctx)
+        {
+            if (ctx is GeminiCtx gctx)
+            {
+                var name = gctx.Certificate?.Subject.Replace("CN=", "");
+                return string.IsNullOrEmpty(name) ? "Anon" : name;
+            }
+            return "Spartan";
         }
     }
 }
